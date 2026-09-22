@@ -1,26 +1,67 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --cream: #f7f1e7;
+  --ivory: #fffdf8;
+  --deep-brown: #4a3428;
+  --walnut: #765548;
+  --terracotta: #b86f52;
+  --dusty-peach: #d9a58d;
+  --sage: #7cbb68;
+  --beige: #e4dbc9;
+  --espresso: #2d211b;
+  --warm-gray: #796e66;
+  --paper: var(--cream);
+  --card: var(--ivory);
+  --ink: var(--espresso);
+  --muted: var(--warm-gray);
+  --line: var(--beige);
+  --cover-fallback: var(--walnut);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-cream: var(--cream);
+  --color-ivory: var(--ivory);
+  --color-deep-brown: var(--deep-brown);
+  --color-walnut: var(--walnut);
+  --color-terracotta: var(--terracotta);
+  --color-dusty-peach: var(--dusty-peach);
+  --color-sage: var(--sage);
+  --color-beige: var(--beige);
+  --color-espresso: var(--espresso);
+  --color-warm-gray: var(--warm-gray);
+  --color-background: var(--cream);
+  --color-foreground: var(--espresso);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-playfair);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--cream);
+  color: var(--espresso);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+.font-serif {
+  font-family: var(--font-playfair), Georgia, serif;
+}
+
+.phone-shell {
+  background: var(--ivory);
+  box-shadow: 0 24px 80px rgba(45, 33, 27, 0.08);
+}
+
+@keyframes notify-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.notify-pop {
+  animation: notify-pop 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }

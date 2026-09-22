@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum ReadingStatus {
+  WANT_TO_READ
+  READING
+  READ
+}
+
+model User {
+  id           String             @id @default(cuid())
+  email        String             @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  library      LibraryEntry[]
+  following    Follow[]           @relation("Following")
+  followers    Follow[]           @relation("Followers")
+  likes               ActivityLike[]
+  comments            ActivityComment[]
+  notifications       Notification[]     @relation("Notifications")
+  actedNotifications  Notification[]     @relation("NotificationActor")
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  follower    User     @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("Followers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+model ActivityLike {
+  id        String       @id @default(cuid())
+  userId    String
+  entryId   String
+  createdAt DateTime     @default(now())
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entry     LibraryEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entryId])
+  @@index([entryId])
+}
+
+model ActivityComment {
+  id        String            @id @default(cuid())
+  userId    String
+  entryId   String
+  parentId  String?
+  body      String
+  createdAt DateTime          @default(now())
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entry     LibraryEntry      @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  parent    ActivityComment?  @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   ActivityComment[] @relation("CommentThread")
+
+  @@index([entryId])
+  @@index([parentId])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  actorId   String
+  type      String
+  entryId   String?
+  commentId String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation("Notifications", fields: [userId], references: [id], onDelete: Cascade)
+  actor     User      @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+}
+
+model Book {
+  id                String          @id @default(cuid())
+  openLibraryKey    String          @unique
+  title             String
+  author            String
+  coverId           Int?
+  firstPublishYear  Int?
+  description       String?
+  subjects          String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  library           LibraryEntry[]
+}
+
+model LibraryEntry {
+  id        String         @id @default(cuid())
+  userId    String
+  bookId    String
+  status    ReadingStatus
+  rating    Float?
+  review    String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book      Book             @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  likes     ActivityLike[]
+  comments  ActivityComment[]
+
+  @@unique([userId, bookId])
+  @@index([userId, status])
+}
