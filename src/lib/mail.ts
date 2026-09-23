@@ -19,137 +19,33 @@ export function isEmailConfigured() {
   return Boolean(env("SMTP_HOST") && smtpUser() && env("SMTP_PASS"));
 }
 
-function fromHost() {
-  const match = fromAddress().match(/@([^>]+)/);
-  return match?.[1] ?? "none";
-}
-
 export async function sendEmail(options: {
   to: string;
   subject: string;
   text: string;
   html: string;
 }) {
-  const smtpReady = isEmailConfigured();
-  // #region agent log
-  fetch("http://127.0.0.1:7866/ingest/799abf13-21c8-4bf6-b833-707b1ff5f96f", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": "a6ec37",
-    },
-    body: JSON.stringify({
-      sessionId: "a6ec37",
-      hypothesisId: "B",
-      location: "src/lib/mail.ts:sendEmail",
-      message: "sendEmail config",
-      data: {
-        smtpReady,
-        hasHost: Boolean(env("SMTP_HOST")),
-        hasUser: Boolean(smtpUser()),
-        hasPass: Boolean(env("SMTP_PASS")),
-        fromHost: fromHost(),
-        hasResendKey: Boolean(env("RESEND_API_KEY")),
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-  console.info(
-    "[readroom-mail]",
-    JSON.stringify({
-      smtpReady,
-      hasHost: Boolean(env("SMTP_HOST")),
-      hasUser: Boolean(smtpUser()),
-      hasPass: Boolean(env("SMTP_PASS")),
-      fromHost: fromHost(),
-      hasResendKey: Boolean(env("RESEND_API_KEY")),
-    }),
-  );
-
-  if (!smtpReady) {
-    // #region agent log
-    fetch("http://127.0.0.1:7866/ingest/799abf13-21c8-4bf6-b833-707b1ff5f96f", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "a6ec37",
-      },
-      body: JSON.stringify({
-        sessionId: "a6ec37",
-        hypothesisId: "B",
-        location: "src/lib/mail.ts:sendEmail",
-        message: "sendEmail blocked: smtp not configured",
-        data: { smtpReady: false },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
+  if (!isEmailConfigured()) {
     throw new Error("Email is not configured");
   }
 
-  try {
-    const transporter = nodemailer.createTransport({
-      host: env("SMTP_HOST"),
-      port: Number(env("SMTP_PORT") || 587),
-      secure: env("SMTP_SECURE") === "true",
-      auth: {
-        user: smtpUser(),
-        pass: env("SMTP_PASS"),
-      },
-    });
+  const transporter = nodemailer.createTransport({
+    host: env("SMTP_HOST"),
+    port: Number(env("SMTP_PORT") || 587),
+    secure: env("SMTP_SECURE") === "true",
+    auth: {
+      user: smtpUser(),
+      pass: env("SMTP_PASS"),
+    },
+  });
 
-    await transporter.sendMail({
-      from: fromAddress(),
-      to: options.to,
-      subject: options.subject,
-      text: options.text,
-      html: options.html,
-    });
-    // #region agent log
-    fetch("http://127.0.0.1:7866/ingest/799abf13-21c8-4bf6-b833-707b1ff5f96f", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "a6ec37",
-      },
-      body: JSON.stringify({
-        sessionId: "a6ec37",
-        hypothesisId: "C",
-        location: "src/lib/mail.ts:sendEmail",
-        message: "smtp send ok",
-        data: { fromHost: fromHost() },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-  } catch (error) {
-    const errName = error instanceof Error ? error.name : "unknown";
-    const errHint =
-      error instanceof Error && /own email address|verify a domain/i.test(error.message)
-        ? "resend-owner-only"
-        : error instanceof Error && /auth|invalid login|eauth/i.test(error.message)
-          ? "smtp-auth"
-          : "other";
-    // #region agent log
-    fetch("http://127.0.0.1:7866/ingest/799abf13-21c8-4bf6-b833-707b1ff5f96f", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Debug-Session-Id": "a6ec37",
-      },
-      body: JSON.stringify({
-        sessionId: "a6ec37",
-        hypothesisId: "A",
-        location: "src/lib/mail.ts:sendEmail",
-        message: "sendEmail failed",
-        data: { errName, errHint },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-    throw error;
-  }
+  await transporter.sendMail({
+    from: fromAddress(),
+    to: options.to,
+    subject: options.subject,
+    text: options.text,
+    html: options.html,
+  });
 }
 
 function codeEmail(code: string, purpose: "reset" | "signup") {
