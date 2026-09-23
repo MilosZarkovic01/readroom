@@ -53,6 +53,13 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           autoComplete={mode === "login" ? "current-password" : "new-password"}
         />
       </label>
+      {mode === "login" ? (
+        <p className="-mt-1 text-right text-sm">
+          <Link className="font-medium text-espresso" href="/forgot-password">
+            Forgot password?
+          </Link>
+        </p>
+      ) : null}
       {state?.error ? <p className="text-sm text-terracotta">{state.error}</p> : null}
       <button
         type="submit"

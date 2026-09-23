@@ -18,6 +18,8 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000), create an account, then search by title or author.
 
+Password reset emails use [Resend](https://resend.com). Add `RESEND_API_KEY` and `EMAIL_FROM` to `.env` for local development and to the Vercel project for production. The default `onboarding@resend.dev` sender can deliver to the Resend account owner; verify your own domain in Resend to email any address.
+
 ## Production (Vercel + Neon)
 
 Production uses a free Neon Postgres database. Local development still uses SQLite. The Vercel build runs `prisma migrate deploy` against `prisma/prod/schema.prisma`. The live app is at https://readroom-gamma.vercel.app — `readroom.vercel.app` is a different project.
