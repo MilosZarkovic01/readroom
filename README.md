@@ -7,13 +7,19 @@ A personal book library: sign in, keep three shelves (want to read, currently re
 ```bash
 npm install
 cp .env.example .env
+docker compose up -d
 ```
 
-Set `AUTH_SECRET` in `.env` to a long random string. `DATABASE_URL` can stay as `file:./dev.db` for local SQLite.
+Set `AUTH_SECRET` in `.env` to a long random string. Apply the schema, then start the app:
 
 ```bash
-npx prisma migrate dev --name init
+npx prisma migrate deploy
+npm run db:seed
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000), create an account, then search by title or author.
+
+## Production (Vercel + Neon)
+
+The app deploys on Vercel with a free [Neon](https://neon.tech) Postgres database. The Hobby project `readroom` is linked to this GitHub repo. Neon injects `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (migrations). The `build` script runs `prisma migrate deploy` before `next build`.

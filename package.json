@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "mobile": "npm start --prefix mobile",
-    "build": "next build",
+    "build": "prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
