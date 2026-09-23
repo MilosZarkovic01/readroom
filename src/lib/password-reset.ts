@@ -163,6 +163,7 @@ export async function requestPasswordReset(email: string) {
       if (error instanceof Error) {
         console.error(error.message);
       }
+      return { error: "Password reset email could not be sent. Try again later." };
     }
   }
 

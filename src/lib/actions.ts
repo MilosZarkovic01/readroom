@@ -1,8 +1,10 @@
 "use server";
 
 import bcrypt from "bcryptjs";
+import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { signIn, signOut } from "@/auth";
+import { sendSignupVerification } from "@/lib/email-verify";
 import { prisma } from "@/lib/prisma";
 
 function parseCredentials(formData: FormData) {
@@ -21,6 +23,15 @@ export async function loginAction(
   const { email, password } = parseCredentials(formData);
   if (!email || !password) {
     return { error: "Email and password are required." };
+  }
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (user && !user.emailVerifiedAt) {
+    const valid = await bcrypt.compare(password, user.passwordHash);
+    if (!valid) return { error: "Invalid email or password." };
+    const result = await sendSignupVerification(email);
+    if ("error" in result && result.error) return { error: result.error };
+    redirect("/verify-email");
   }
 
   try {
@@ -51,30 +62,29 @@ export async function registerAction(
   }
 
   const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
+  if (existing?.emailVerifiedAt) {
     return { error: "An account with that email already exists." };
   }
 
-  await prisma.user.create({
-    data: {
-      email,
-      name: name || null,
-      passwordHash: await bcrypt.hash(password, 10),
-    },
-  });
-
-  try {
-    await signIn("credentials", {
-      email,
-      password,
-      redirectTo: "/",
+  const passwordHash = await bcrypt.hash(password, 10);
+  if (existing && !existing.emailVerifiedAt) {
+    await prisma.user.update({
+      where: { id: existing.id },
+      data: { passwordHash, name: name || existing.name },
     });
-  } catch (error) {
-    if (error instanceof AuthError) {
-      return { error: "Account created, but sign-in failed. Try logging in." };
-    }
-    throw error;
+  } else {
+    await prisma.user.create({
+      data: {
+        email,
+        name: name || null,
+        passwordHash,
+      },
+    });
   }
+
+  const result = await sendSignupVerification(email);
+  if ("error" in result && result.error) return { error: result.error };
+  redirect("/verify-email");
 }
 
 export async function logoutAction() {

@@ -35,13 +35,23 @@ async function main() {
 
   const claire = await prisma.user.upsert({
     where: { email: "claire@readroom.dev" },
-    update: { name: "Claire Hart" },
-    create: { email: "claire@readroom.dev", name: "Claire Hart", passwordHash },
+    update: { name: "Claire Hart", emailVerifiedAt: new Date() },
+    create: {
+      email: "claire@readroom.dev",
+      name: "Claire Hart",
+      passwordHash,
+      emailVerifiedAt: new Date(),
+    },
   });
   const julian = await prisma.user.upsert({
     where: { email: "julian@readroom.dev" },
-    update: { name: "Julian Moss" },
-    create: { email: "julian@readroom.dev", name: "Julian Moss", passwordHash },
+    update: { name: "Julian Moss", emailVerifiedAt: new Date() },
+    create: {
+      email: "julian@readroom.dev",
+      name: "Julian Moss",
+      passwordHash,
+      emailVerifiedAt: new Date(),
+    },
   });
 
   const savedBooks = [];

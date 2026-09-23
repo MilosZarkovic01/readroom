@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { signIn } from "@/auth";
+import { sendSignupVerification } from "@/lib/email-verify";
+import { prisma } from "@/lib/prisma";
 import {
   getPendingReset,
   getVerifiedReset,
@@ -59,10 +61,24 @@ export async function setPasswordAction(
 
   const result = await setNewPassword(password);
   if ("error" in result && result.error) return { error: result.error };
+  if (!("email" in result) || !result.email) {
+    return { error: "Password updated. Please log in." };
+  }
+
+  const email = result.email;
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { emailVerifiedAt: true },
+  });
+  if (user && !user.emailVerifiedAt) {
+    const verify = await sendSignupVerification(email);
+    if ("error" in verify && verify.error) return { error: verify.error };
+    redirect("/verify-email");
+  }
 
   try {
     await signIn("credentials", {
-      email: result.email,
+      email,
       password,
       redirectTo: "/",
     });

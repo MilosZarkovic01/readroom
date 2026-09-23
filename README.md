@@ -16,9 +16,9 @@ npx prisma migrate dev --name init
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000), create an account, then search by title or author.
+Open [http://localhost:3000](http://localhost:3000), create an account, verify the email code, then search by title or author.
 
-Password reset emails use [Resend](https://resend.com). Add `RESEND_API_KEY` and `EMAIL_FROM` to `.env` for local development and to the Vercel project for production. The default `onboarding@resend.dev` sender can deliver to the Resend account owner; verify your own domain in Resend to email any address.
+Signup verification and password reset emails use [Resend](https://resend.com). Add `RESEND_API_KEY` and `EMAIL_FROM` to `.env` for local development and to the Vercel project for production. The default `onboarding@resend.dev` sender can deliver to the Resend account owner; verify your own domain in Resend to email any address.
 
 ## Production (Vercel + Neon)
 
