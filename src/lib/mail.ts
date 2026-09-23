@@ -1,16 +1,27 @@
-import { Resend } from "resend";
 import nodemailer from "nodemailer";
 
 function env(name: string) {
   return process.env[name]?.trim() || "";
 }
 
+function smtpUser() {
+  return env("SMTP_USER");
+}
+
 function fromAddress() {
-  return env("EMAIL_FROM") || "ReadRoom <onboarding@resend.dev>";
+  const from = env("EMAIL_FROM");
+  if (from) return from;
+  const user = smtpUser();
+  return user ? `ReadRoom <${user}>` : "ReadRoom";
 }
 
 export function isEmailConfigured() {
-  return Boolean(env("RESEND_API_KEY") || env("SMTP_HOST"));
+  return Boolean(env("SMTP_HOST") && smtpUser() && env("SMTP_PASS"));
+}
+
+function fromHost() {
+  const match = fromAddress().match(/@([^>]+)/);
+  return match?.[1] ?? "none";
 }
 
 export async function sendEmail(options: {
@@ -19,48 +30,126 @@ export async function sendEmail(options: {
   text: string;
   html: string;
 }) {
-  const from = fromAddress();
-  const resendKey = env("RESEND_API_KEY");
+  const smtpReady = isEmailConfigured();
+  // #region agent log
+  fetch("http://127.0.0.1:7866/ingest/799abf13-21c8-4bf6-b833-707b1ff5f96f", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "a6ec37",
+    },
+    body: JSON.stringify({
+      sessionId: "a6ec37",
+      hypothesisId: "B",
+      location: "src/lib/mail.ts:sendEmail",
+      message: "sendEmail config",
+      data: {
+        smtpReady,
+        hasHost: Boolean(env("SMTP_HOST")),
+        hasUser: Boolean(smtpUser()),
+        hasPass: Boolean(env("SMTP_PASS")),
+        fromHost: fromHost(),
+        hasResendKey: Boolean(env("RESEND_API_KEY")),
+      },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
+  console.info(
+    "[readroom-mail]",
+    JSON.stringify({
+      smtpReady,
+      hasHost: Boolean(env("SMTP_HOST")),
+      hasUser: Boolean(smtpUser()),
+      hasPass: Boolean(env("SMTP_PASS")),
+      fromHost: fromHost(),
+      hasResendKey: Boolean(env("RESEND_API_KEY")),
+    }),
+  );
 
-  if (resendKey) {
-    const resend = new Resend(resendKey);
-    const { error } = await resend.emails.send({
-      from,
-      to: options.to,
-      subject: options.subject,
-      text: options.text,
-      html: options.html,
-    });
-    if (error) {
-      throw new Error(error.message);
-    }
-    return;
+  if (!smtpReady) {
+    // #region agent log
+    fetch("http://127.0.0.1:7866/ingest/799abf13-21c8-4bf6-b833-707b1ff5f96f", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "a6ec37",
+      },
+      body: JSON.stringify({
+        sessionId: "a6ec37",
+        hypothesisId: "B",
+        location: "src/lib/mail.ts:sendEmail",
+        message: "sendEmail blocked: smtp not configured",
+        data: { smtpReady: false },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+    throw new Error("Email is not configured");
   }
 
-  if (env("SMTP_HOST")) {
+  try {
     const transporter = nodemailer.createTransport({
       host: env("SMTP_HOST"),
       port: Number(env("SMTP_PORT") || 587),
       secure: env("SMTP_SECURE") === "true",
-      auth:
-        env("SMTP_USER") && env("SMTP_PASS")
-          ? {
-              user: env("SMTP_USER"),
-              pass: env("SMTP_PASS"),
-            }
-          : undefined,
+      auth: {
+        user: smtpUser(),
+        pass: env("SMTP_PASS"),
+      },
     });
+
     await transporter.sendMail({
-      from,
+      from: fromAddress(),
       to: options.to,
       subject: options.subject,
       text: options.text,
       html: options.html,
     });
-    return;
+    // #region agent log
+    fetch("http://127.0.0.1:7866/ingest/799abf13-21c8-4bf6-b833-707b1ff5f96f", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "a6ec37",
+      },
+      body: JSON.stringify({
+        sessionId: "a6ec37",
+        hypothesisId: "C",
+        location: "src/lib/mail.ts:sendEmail",
+        message: "smtp send ok",
+        data: { fromHost: fromHost() },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+  } catch (error) {
+    const errName = error instanceof Error ? error.name : "unknown";
+    const errHint =
+      error instanceof Error && /own email address|verify a domain/i.test(error.message)
+        ? "resend-owner-only"
+        : error instanceof Error && /auth|invalid login|eauth/i.test(error.message)
+          ? "smtp-auth"
+          : "other";
+    // #region agent log
+    fetch("http://127.0.0.1:7866/ingest/799abf13-21c8-4bf6-b833-707b1ff5f96f", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "a6ec37",
+      },
+      body: JSON.stringify({
+        sessionId: "a6ec37",
+        hypothesisId: "A",
+        location: "src/lib/mail.ts:sendEmail",
+        message: "sendEmail failed",
+        data: { errName, errHint },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+    throw error;
   }
-
-  throw new Error("Email is not configured");
 }
 
 function codeEmail(code: string, purpose: "reset" | "signup") {

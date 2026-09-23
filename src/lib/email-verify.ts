@@ -89,7 +89,25 @@ async function tooManyRequests(email: string, ip: string) {
 }
 
 export async function sendSignupVerification(email: string) {
-  if (!isEmailConfigured()) {
+  const configured = isEmailConfigured();
+  // #region agent log
+  fetch("http://127.0.0.1:7866/ingest/799abf13-21c8-4bf6-b833-707b1ff5f96f", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "a6ec37",
+    },
+    body: JSON.stringify({
+      sessionId: "a6ec37",
+      hypothesisId: "B",
+      location: "src/lib/email-verify.ts:sendSignupVerification",
+      message: "signup verify start",
+      data: { configured, hasAt: email.includes("@") },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
+  if (!configured) {
     return { error: "Verification email could not be sent. Try again later." };
   }
 
@@ -126,6 +144,29 @@ export async function sendSignupVerification(email: string) {
   try {
     await sendEmail({ to: email, ...signupVerificationEmail(code) });
   } catch (error) {
+    const errHint =
+      error instanceof Error && /own email address|verify a domain/i.test(error.message)
+        ? "resend-owner-only"
+        : error instanceof Error && /not configured/i.test(error.message)
+          ? "not-configured"
+          : "other";
+    // #region agent log
+    fetch("http://127.0.0.1:7866/ingest/799abf13-21c8-4bf6-b833-707b1ff5f96f", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Debug-Session-Id": "a6ec37",
+      },
+      body: JSON.stringify({
+        sessionId: "a6ec37",
+        hypothesisId: "A",
+        location: "src/lib/email-verify.ts:sendSignupVerification",
+        message: "signup send failed",
+        data: { errHint, reachedCookie: false },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
     console.error("Failed to send signup verification email");
     if (error instanceof Error) {
       console.error(error.message);
@@ -133,6 +174,23 @@ export async function sendSignupVerification(email: string) {
     return { error: "Verification email could not be sent. Try again later." };
   }
 
+  // #region agent log
+  fetch("http://127.0.0.1:7866/ingest/799abf13-21c8-4bf6-b833-707b1ff5f96f", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Debug-Session-Id": "a6ec37",
+    },
+    body: JSON.stringify({
+      sessionId: "a6ec37",
+      hypothesisId: "D",
+      location: "src/lib/email-verify.ts:sendSignupVerification",
+      message: "signup send ok, setting cookie",
+      data: { reachedCookie: true },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
   await setPendingCookie(email);
   return { ok: true as const };
 }

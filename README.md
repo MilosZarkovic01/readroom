@@ -18,7 +18,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000), create an account, verify the email code, then search by title or author.
 
-Signup verification and password reset emails use [Resend](https://resend.com). Add `RESEND_API_KEY` and `EMAIL_FROM` to `.env` for local development and to the Vercel project for production. The default `onboarding@resend.dev` sender can deliver to the Resend account owner; verify your own domain in Resend to email any address.
+Signup verification and password reset emails use Gmail SMTP. Create a dedicated Gmail account for ReadRoom, turn on 2-Step Verification, and generate an [App Password](https://myaccount.google.com/apppasswords). Set `SMTP_USER`, `SMTP_PASS`, and `EMAIL_FROM` in `.env` and in the Vercel project. Codes are sent to the address the user registered with; the visible sender is `ReadRoom <your-gmail>`.
 
 ## Production (Vercel + Neon)
 
