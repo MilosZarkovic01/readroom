@@ -1,0 +1,19 @@
+---
+description: Feature branch, merge request, and CI/CD workflow
+alwaysApply: true
+---
+
+# ReadRoom change workflow
+
+Never commit feature work to `main` or `master`.
+
+1. Create a branch from the latest `main`:
+   - `feature/<short-description>`
+   - `fix/<short-description>`
+   - `refactor/<short-description>`
+2. Implement only on that branch.
+3. Run `npm run lint`, `npm run typecheck`, `npm test`, and `npm run test:e2e` before opening a merge request. Fix failures first.
+4. Commit with a short why-focused message.
+5. Push the feature branch and open a pull request targeting `main`.
+6. Do not merge unless the user explicitly asks.
+7. Do not deploy production from a feature branch. Production uses the GitHub Actions **Deploy PRD** job on `main` after Test and Build, and only after manual approval.

@@ -1,0 +1,36 @@
+name: Notify MR review
+
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    name: Email reviewer
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --omit=dev
+      - name: Send review email
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_SECURE: ${{ secrets.SMTP_SECURE }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          NOTIFY_EMAIL: miloszarkovic01@gmail.com
+          MR_TITLE: ${{ github.event.pull_request.title }}
+          MR_URL: ${{ github.event.pull_request.html_url }}
+          MR_NUMBER: ${{ github.event.pull_request.number }}
+          MR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: node .github/scripts/notify-mr.mjs
