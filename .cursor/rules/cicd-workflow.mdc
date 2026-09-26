@@ -16,4 +16,4 @@ Never commit feature work to `main` or `master`.
 4. Commit with a short why-focused message.
 5. Push the feature branch and open a pull request targeting `main`.
 6. Do not merge unless the user explicitly asks.
-7. Do not deploy production from a feature branch. Production uses the GitHub Actions **Deploy PRD** job on `main` after Test and Build, and only after manual approval.
+7. Do not deploy production from a feature branch. After merge, production is published only by manually running **Actions → CI/CD → Run workflow** on `main` (Test → Build → Deploy PRD).
