@@ -16,4 +16,4 @@ Never commit feature work to `master`.
 4. Commit with a short why-focused message.
 5. Push the feature branch and open a pull request targeting `master`.
 6. Do not merge unless the user explicitly asks.
-7. Do not deploy production from a feature branch. After merge, production is published only by manually running **Actions → CI/CD → Run workflow** on `master` (Test → Build → Deploy PRD).
+7. Do not deploy production from a feature branch. After merge, production is published only by manually running **Actions → Deploy PRD → Run workflow** on `master` (Test → Build → Deploy PRD).
