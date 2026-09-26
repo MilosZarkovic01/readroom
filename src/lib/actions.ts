@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { AuthError } from "next-auth";
 import { signIn, signOut } from "@/auth";
 import { sendSignupVerification } from "@/lib/email-verify";
+import { isGoogleAuthEnabled } from "@/lib/google-auth";
 import { prisma } from "@/lib/prisma";
 
 function parseCredentials(formData: FormData) {
@@ -88,12 +89,19 @@ export async function registerAction(
   redirect("/verify-email");
 }
 
-export async function googleAuthAction() {
+export async function googleAuthAction(formData?: FormData) {
+  const mode = formData?.get("mode") === "register" ? "register" : "login";
+  const errorPath = mode === "register" ? "/register" : "/login";
+
+  if (!isGoogleAuthEnabled()) {
+    redirect(`${errorPath}?error=Configuration`);
+  }
+
   try {
     await signIn("google", { redirectTo: "/" });
   } catch (error) {
     if (error instanceof AuthError) {
-      redirect(`/login?error=${encodeURIComponent(error.type || "google")}`);
+      redirect(`${errorPath}?error=${encodeURIComponent(error.type || "google")}`);
     }
     throw error;
   }

@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { AuthForm } from "@/components/AuthForm";
-import { isGoogleAuthEnabled } from "@/lib/google-auth";
 import { oauthErrorMessage } from "@/lib/oauth-errors";
 
 export default async function LoginPage({
@@ -19,11 +18,7 @@ export default async function LoginPage({
           Email verified. Please log in.
         </p>
       ) : null}
-      <AuthForm
-        mode="login"
-        googleEnabled={isGoogleAuthEnabled()}
-        oauthError={oauthErrorMessage(error)}
-      />
+      <AuthForm mode="login" oauthError={oauthErrorMessage(error)} />
     </div>
   );
 }

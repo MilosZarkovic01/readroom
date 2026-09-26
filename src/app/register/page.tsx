@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { AuthForm } from "@/components/AuthForm";
-import { isGoogleAuthEnabled } from "@/lib/google-auth";
 import { oauthErrorMessage } from "@/lib/oauth-errors";
 
 export default async function RegisterPage({
@@ -14,11 +13,7 @@ export default async function RegisterPage({
   const { error } = await searchParams;
   return (
     <div className="phone-shell mx-auto min-h-full max-w-[430px]">
-      <AuthForm
-        mode="register"
-        googleEnabled={isGoogleAuthEnabled()}
-        oauthError={oauthErrorMessage(error)}
-      />
+      <AuthForm mode="register" oauthError={oauthErrorMessage(error)} />
     </div>
   );
 }

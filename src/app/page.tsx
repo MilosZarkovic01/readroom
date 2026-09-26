@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/AppShell";
 import { BookCover } from "@/components/BookCover";
 import { BooksOfTheWeek } from "@/components/BooksOfTheWeek";
+import { GoogleAuthButton } from "@/components/GoogleAuthButton";
 import { SearchBar } from "@/components/SearchBar";
 import { StatusChip } from "@/components/StatusChip";
 import { STATUSES } from "@/lib/status";
@@ -52,6 +53,10 @@ export default async function HomePage() {
           >
             Log in
           </Link>
+          <p className="mt-4 text-center text-sm text-warm-gray">or</p>
+          <div className="mt-3">
+            <GoogleAuthButton mode="register" />
+          </div>
         </div>
       </div>
     );
