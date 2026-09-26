@@ -29,7 +29,7 @@ GitHub Actions runs **Test → Build → Deploy PRD**.
 - Feature work goes on `feature/*`, `fix/*`, or `refactor/*` branches and a pull request to `master`.
 - Test runs lint, typecheck, unit tests, Prisma schema checks, and Playwright smoke tests.
 - Build compiles the app only after Test passes.
-- **Deploy PRD** never runs on pull requests, feature branches, or automatic pushes to `master`. After merge, open **Actions → CI/CD → Run workflow** on `master`. That run executes Test → Build → Deploy PRD. The `production` environment is an extra approval gate if you enable required reviewers.
+- **Deploy PRD** is a separate workflow. It never runs on pull requests, feature branches, or automatic pushes to `master`. After Test and Build are green on `master`, open **Actions → Deploy PRD → Run workflow** and select the `master` branch. That run executes Test → Build → Deploy PRD.
 
 Required GitHub secrets for production deploys: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`. Review-email secrets: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`.
 
