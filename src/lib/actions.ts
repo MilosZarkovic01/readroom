@@ -27,6 +27,7 @@ export async function loginAction(
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (user && !user.emailVerifiedAt) {
+    if (!user.passwordHash) return { error: "Invalid email or password." };
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) return { error: "Invalid email or password." };
     const result = await sendSignupVerification(email);
@@ -87,6 +88,18 @@ export async function registerAction(
   redirect("/verify-email");
 }
 
+export async function googleAuthAction() {
+  try {
+    await signIn("google", { redirectTo: "/" });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      redirect(`/login?error=${encodeURIComponent(error.type || "google")}`);
+    }
+    throw error;
+  }
+}
+
 export async function logoutAction() {
-  await signOut({ redirectTo: "/" });
+  await signOut({ redirect: false });
+  redirect("/");
 }

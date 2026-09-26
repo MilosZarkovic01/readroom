@@ -17,7 +17,7 @@ enum ReadingStatus {
 model User {
   id              String             @id @default(cuid())
   email           String             @unique
-  passwordHash    String
+  passwordHash    String?
   name            String?
   emailVerifiedAt DateTime?
   createdAt    DateTime           @default(now())

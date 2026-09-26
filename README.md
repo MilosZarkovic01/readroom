@@ -18,6 +18,8 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000), create an account, verify the email code, then search by title or author.
 
+Optional Google sign-in uses `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET`. In Google Cloud, create separate OAuth clients for Production and Preview and set those variables on the matching Vercel environment. Authorized redirect URI: `https://<host>/api/auth/callback/google` (Production: `https://readroom-gamma.vercel.app/api/auth/callback/google`). The Continue with Google button stays hidden until both variables are set.
+
 Signup verification and password reset emails use Gmail SMTP. Create a dedicated Gmail account for ReadRoom, turn on 2-Step Verification, and generate an [App Password](https://myaccount.google.com/apppasswords). Set `SMTP_USER`, `SMTP_PASS`, and `EMAIL_FROM` in `.env` and in the Vercel project. Codes are sent to the address the user registered with; the visible sender is `ReadRoom <your-gmail>`.
 
 ## CI/CD
