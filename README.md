@@ -34,3 +34,18 @@ Required GitHub secrets for production deploys: `VERCEL_TOKEN`, `VERCEL_ORG_ID`,
 ## Production (Vercel + Neon)
 
 Production uses a free Neon Postgres database. Local development still uses SQLite. The Vercel build runs `prisma migrate deploy` against `prisma/prod/schema.prisma`. The live app is at https://readroom-gamma.vercel.app — `readroom.vercel.app` is a different project.
+
+## Preview / STG (Vercel Preview)
+
+Pull-request previews are a separate STG environment. They must not use Production `DATABASE_URL`, SMTP, or `AUTH_SECRET`.
+
+| Service | Production | Preview / STG |
+| --- | --- | --- |
+| Database | Neon branch `main` | Neon schema-only branch `stg` |
+| Auth secret | Production `AUTH_SECRET` | Preview-only `AUTH_SECRET` |
+| Email | Production Gmail SMTP | Ethereal SMTP (`smtp.ethereal.email`) |
+| Book search / covers | Public Open Library (no key) | Same public API |
+
+Vercel Preview variables include `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, `AUTH_SECRET`, `AUTH_TRUST_HOST`, `SMTP_*`, `EMAIL_FROM`, and `READROOM_ENV=stg`. Open Library has no credentials. Unused `RESEND_API_KEY` is not set on Preview.
+
+STG verification emails go to Ethereal, not Gmail. Open the [Ethereal inbox](https://ethereal.email/login) for the Preview SMTP user to read codes. Replace those Preview SMTP values with a dedicated STG mailbox later if you want real inboxes.
