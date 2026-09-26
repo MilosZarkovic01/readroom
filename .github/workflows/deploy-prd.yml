@@ -14,6 +14,8 @@ env:
   DATABASE_URL: file:./prisma/ci.db
   AUTH_SECRET: ci-test-secret-at-least-32-characters-long
   AUTH_TRUST_HOST: "true"
+  VERCEL_ORG_ID: team_BnctOpMLBBKEN2HLhthiSRuY
+  VERCEL_PROJECT_ID: prj_pouW6gfNItYq5iHSHXNtLQOs1Hz7
 
 jobs:
   test:
@@ -60,40 +62,33 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Check deploy secrets
+      - name: Check deploy token
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          missing=0
-          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID; do
-            if [ -z "${!name}" ]; then
-              echo "$name is not set in GitHub Actions secrets."
-              missing=1
-            fi
-          done
-          if [ "$missing" -ne 0 ]; then
-            echo "Add the missing secrets under Settings → Secrets and variables → Actions."
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "VERCEL_TOKEN is not set."
+            echo "Create a Vercel token at https://vercel.com/account/tokens"
+            echo "Then add a repository secret named VERCEL_TOKEN at"
+            echo "https://github.com/MilosZarkovic01/readroom/settings/secrets/actions"
+            echo "or as a Production environment secret at"
+            echo "https://github.com/MilosZarkovic01/readroom/settings/environments"
             exit 1
           fi
       - run: npm ci
       - run: npm install -g vercel@latest
       - name: Pull production environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=production
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       - name: Build production artifact
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel build --prod
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       - name: Deploy to production
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel deploy --prebuilt --prod
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
   refuse-non-master:
     name: Master only
