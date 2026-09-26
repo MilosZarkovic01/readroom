@@ -17,7 +17,10 @@ export async function resendSignupVerificationAction() {
     return { error: "This email is already verified. Please log in." };
   }
   if ("error" in result && result.error) return { error: result.error };
-  return { message: "We sent a new verification code." };
+  return {
+    message: "We sent a new verification code.",
+    inboxUrl: "inboxUrl" in result ? result.inboxUrl : undefined,
+  };
 }
 
 export async function verifySignupAction(
