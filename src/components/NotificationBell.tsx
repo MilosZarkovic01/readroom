@@ -40,7 +40,6 @@ export function NotificationBell({ unread }: { unread: number }) {
 
     let source: EventSource | null = null;
     let retry: number | undefined;
-    let poll: number | undefined;
     let closed = false;
 
     function connect() {
@@ -78,12 +77,12 @@ export function NotificationBell({ unread }: { unread: number }) {
 
     connect();
     void pull();
-    poll = window.setInterval(() => void pull(), 4000);
+    const poll = window.setInterval(() => void pull(), 4000);
 
     return () => {
       closed = true;
       if (retry) window.clearTimeout(retry);
-      if (poll) window.clearInterval(poll);
+      window.clearInterval(poll);
       source?.close();
     };
   }, [router]);
