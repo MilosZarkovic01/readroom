@@ -57,42 +57,72 @@ jobs:
     needs: [test, build]
     environment: Production
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
       - name: Check deploy token
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           if [ -z "$VERCEL_TOKEN" ]; then
             echo "VERCEL_TOKEN is not set."
-            echo "Create a Vercel token at https://vercel.com/account/tokens"
+            echo "Create a Vercel token scoped to the readroom project at https://vercel.com/account/tokens"
             echo "Then add a repository secret named VERCEL_TOKEN at"
             echo "https://github.com/MilosZarkovic01/readroom/settings/secrets/actions"
             echo "or as a Production environment secret at"
             echo "https://github.com/MilosZarkovic01/readroom/settings/environments"
             exit 1
           fi
-      - run: npm ci
-      - run: npm install -g vercel@latest
-      - name: Link Vercel project
+      - name: Deploy production from master
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          mkdir -p .vercel
-          printf '%s\n' '{"orgId":"team_BnctOpMLBBKEN2HLhthiSRuY","projectId":"prj_pouW6gfNItYq5iHSHXNtLQOs1Hz7","projectName":"readroom"}' > .vercel/project.json
-      - name: Pull production environment
-        run: vercel pull --yes --environment=production --scope zarkovic-m
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      - name: Build production artifact
-        run: vercel build --prod --scope zarkovic-m
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      - name: Deploy to production
-        run: vercel deploy --prebuilt --prod --scope zarkovic-m
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          set -euo pipefail
+          payload=$(jq -n \
+            --arg name "readroom" \
+            --arg project "$VERCEL_PROJECT_ID" \
+            --arg sha "${{ github.sha }}" \
+            '{
+              name: $name,
+              project: $project,
+              target: "production",
+              gitSource: {
+                type: "github",
+                org: "MilosZarkovic01",
+                repo: "readroom",
+                ref: "master",
+                sha: $sha
+              }
+            }')
+          response=$(curl -sS -X POST \
+            "https://api.vercel.com/v13/deployments?teamId=${VERCEL_ORG_ID}&forceNew=1&skipAutoDetectionConfirmation=1" \
+            -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "$payload")
+          id=$(echo "$response" | jq -r '.id // empty')
+          if [ -z "$id" ]; then
+            echo "Vercel did not create a deployment."
+            echo "$response" | jq '{error, message, code}'
+            exit 1
+          fi
+          echo "Created deployment $id"
+          for _ in $(seq 1 60); do
+            info=$(curl -sS \
+              "https://api.vercel.com/v13/deployments/${id}?teamId=${VERCEL_ORG_ID}" \
+              -H "Authorization: Bearer ${VERCEL_TOKEN}")
+            status=$(echo "$info" | jq -r '.readyState // empty')
+            echo "Deployment status: $status"
+            case "$status" in
+              READY)
+                echo "Production URL: https://$(echo "$info" | jq -r '.url')"
+                exit 0
+                ;;
+              ERROR|CANCELED)
+                echo "$info" | jq '{readyState, errorMessage, errorCode}'
+                exit 1
+                ;;
+            esac
+            sleep 10
+          done
+          echo "Timed out waiting for deployment $id"
+          exit 1
 
   refuse-non-master:
     name: Master only

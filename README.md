@@ -31,7 +31,7 @@ GitHub Actions runs **Test → Build → Deploy PRD**.
 - Build compiles the app only after Test passes.
 - **Deploy PRD** is a separate workflow. It never runs on pull requests, feature branches, or automatic pushes to `master`. After Test and Build are green on `master`, open **Actions → Deploy PRD → Run workflow** and select the `master` branch. That run executes Test → Build → Deploy PRD.
 
-Required GitHub secret for production deploys: `VERCEL_TOKEN` (create at https://vercel.com/account/tokens, then add it under Settings → Secrets and variables → Actions, or on the Production environment). Org and project IDs are set in the Deploy PRD workflow. Review-email secrets: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`.
+Required GitHub secret for production deploys: `VERCEL_TOKEN` from https://vercel.com/account/tokens. A token scoped to the `readroom` project is enough. Add it under Settings → Secrets and variables → Actions, or on the Production environment. Deploy PRD calls the Vercel Deployments API (the CLI cannot use a project-scoped token). Review-email secrets: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`.
 
 ## Production (Vercel + Neon)
 
