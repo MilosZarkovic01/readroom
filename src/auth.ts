@@ -1,13 +1,18 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { isGoogleAuthEnabled, upsertGoogleUser } from "@/lib/google-auth";
+
+const googleEnabled = isGoogleAuthEnabled();
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   session: { strategy: "jwt" },
-  pages: { signIn: "/login" },
+  pages: { signIn: "/login", error: "/login" },
   providers: [
+    ...(googleEnabled ? [Google({})] : []),
     Credentials({
       credentials: {
         email: { label: "Email", type: "email" },
@@ -24,7 +29,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!email || !password) return null;
 
         const user = await prisma.user.findUnique({ where: { email } });
-        if (!user || !user.emailVerifiedAt) return null;
+        if (!user || !user.emailVerifiedAt || !user.passwordHash) return null;
 
         const valid = await bcrypt.compare(password, user.passwordHash);
         if (!valid) return null;
@@ -34,7 +39,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    jwt({ token, user }) {
+    async signIn({ user, account }) {
+      if (account?.provider !== "google") return true;
+      if (!user.email) return "/login?error=google";
+      return true;
+    },
+    async jwt({ token, user, account }) {
+      if (account?.provider === "google" && user?.email) {
+        const dbUser = await upsertGoogleUser({ email: user.email, name: user.name });
+        token.id = dbUser.id;
+        return token;
+      }
       if (user?.id) token.id = user.id;
       return token;
     },

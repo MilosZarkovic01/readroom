@@ -62,7 +62,9 @@ export function FriendsTabs({
             />
           </form>
           {people.length === 0 ? (
-            <p className="pt-10 text-center font-sans text-sm text-warm-gray">No other readers yet.</p>
+            <p className="pt-10 text-center font-sans text-sm text-warm-gray">
+              {query ? "No readers match that search." : "No people to recommend yet."}
+            </p>
           ) : (
             <div className="mt-2 divide-y divide-beige">
               {people.map((person) => (
