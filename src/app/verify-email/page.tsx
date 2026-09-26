@@ -10,7 +10,7 @@ export default async function VerifyEmailPage() {
   if (!pending) redirect("/register");
   return (
     <div className="phone-shell mx-auto min-h-full max-w-[430px]">
-      <VerifyEmailForm />
+      <VerifyEmailForm inboxUrl={pending.inboxUrl} />
     </div>
   );
 }

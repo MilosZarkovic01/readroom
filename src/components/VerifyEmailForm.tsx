@@ -5,10 +5,11 @@ import Link from "next/link";
 import { resendSignupVerificationAction, verifySignupAction } from "@/lib/verify-actions";
 import { IconLogo } from "@/components/Icons";
 
-export function VerifyEmailForm() {
+export function VerifyEmailForm({ inboxUrl }: { inboxUrl?: string }) {
   const [state, formAction, pending] = useActionState(verifySignupAction, undefined);
-  const [resend, setResend] = useState<{ error?: string; message?: string }>();
+  const [resend, setResend] = useState<{ error?: string; message?: string; inboxUrl?: string }>();
   const [resending, setResending] = useState(false);
+  const stgInbox = resend?.inboxUrl || inboxUrl;
 
   async function onResend() {
     setResending(true);
@@ -27,6 +28,15 @@ export function VerifyEmailForm() {
         <p className="mt-2 text-sm text-warm-gray">
           Check your email for a 6-digit verification code. It expires in 10 minutes.
         </p>
+        {stgInbox ? (
+          <p className="mt-3 text-sm text-warm-gray">
+            STG does not deliver to a real inbox.{" "}
+            <a className="font-medium text-espresso underline" href={stgInbox} target="_blank" rel="noreferrer">
+              Open the STG verification email
+            </a>{" "}
+            to read the code.
+          </p>
+        ) : null}
       </div>
       <label className="block text-sm text-warm-gray">
         Verification code

@@ -48,4 +48,4 @@ Pull-request previews are a separate STG environment. They must not use Producti
 
 Vercel Preview variables include `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, `AUTH_SECRET`, `AUTH_TRUST_HOST`, `SMTP_*`, `EMAIL_FROM`, and `READROOM_ENV=stg`. Open Library has no credentials. Unused `RESEND_API_KEY` is not set on Preview.
 
-STG verification emails go to Ethereal, not Gmail. Open the [Ethereal inbox](https://ethereal.email/login) for the Preview SMTP user to read codes. Replace those Preview SMTP values with a dedicated STG mailbox later if you want real inboxes.
+STG verification emails are captured by Ethereal, not delivered to a real inbox. After signup, the Preview verify screen shows an **Open the STG verification email** link. Production still sends through Gmail SMTP to the user’s address.

@@ -19,18 +19,49 @@ export function isEmailConfigured() {
   return Boolean(env("SMTP_HOST") && smtpUser() && env("SMTP_PASS"));
 }
 
+function isStgMail() {
+  return env("READROOM_ENV") === "stg" || process.env.VERCEL_ENV === "preview";
+}
+
 export async function sendEmail(options: {
   to: string;
   subject: string;
   text: string;
   html: string;
-}) {
+}): Promise<{ inboxUrl?: string }> {
+  const host = env("SMTP_HOST");
+  const from = fromAddress();
+  const toDomain = options.to.includes("@") ? options.to.split("@")[1] : "";
+  // #region agent log
+  fetch("http://127.0.0.1:7866/ingest/799abf13-21c8-4bf6-b833-707b1ff5f96f", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a6ec37" },
+    body: JSON.stringify({
+      sessionId: "a6ec37",
+      runId: "preview-signup-mail",
+      hypothesisId: "C",
+      location: "src/lib/mail.ts:sendEmail:start",
+      message: "sendEmail start",
+      data: {
+        configured: isEmailConfigured(),
+        host,
+        port: env("SMTP_PORT") || "587",
+        secure: env("SMTP_SECURE") === "true",
+        fromIsEthereal: from.toLowerCase().includes("ethereal"),
+        toDomain,
+        vercelEnv: process.env.VERCEL_ENV || "",
+        readroomEnv: env("READROOM_ENV"),
+      },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
   if (!isEmailConfigured()) {
     throw new Error("Email is not configured");
   }
 
   const transporter = nodemailer.createTransport({
-    host: env("SMTP_HOST"),
+    host,
     port: Number(env("SMTP_PORT") || 587),
     secure: env("SMTP_SECURE") === "true",
     auth: {
@@ -39,13 +70,59 @@ export async function sendEmail(options: {
     },
   });
 
-  await transporter.sendMail({
-    from: fromAddress(),
-    to: options.to,
-    subject: options.subject,
-    text: options.text,
-    html: options.html,
-  });
+  try {
+    const info = await transporter.sendMail({
+      from,
+      to: options.to,
+      subject: options.subject,
+      text: options.text,
+      html: options.html,
+    });
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    const inboxUrl = isStgMail() && previewUrl ? previewUrl : undefined;
+    // #region agent log
+    fetch("http://127.0.0.1:7866/ingest/799abf13-21c8-4bf6-b833-707b1ff5f96f", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a6ec37" },
+      body: JSON.stringify({
+        sessionId: "a6ec37",
+        runId: "post-fix",
+        hypothesisId: "A",
+        location: "src/lib/mail.ts:sendEmail:success",
+        message: "sendEmail accepted",
+        data: {
+          accepted: info.accepted?.length ?? 0,
+          rejected: info.rejected?.length ?? 0,
+          hasPreviewUrl: Boolean(previewUrl),
+          previewHost: previewUrl ? new URL(previewUrl).host : "",
+          hasInboxUrl: Boolean(inboxUrl),
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+    return { inboxUrl };
+  } catch (error) {
+    // #region agent log
+    fetch("http://127.0.0.1:7866/ingest/799abf13-21c8-4bf6-b833-707b1ff5f96f", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a6ec37" },
+      body: JSON.stringify({
+        sessionId: "a6ec37",
+        runId: "preview-signup-mail",
+        hypothesisId: "B",
+        location: "src/lib/mail.ts:sendEmail:error",
+        message: "sendEmail failed",
+        data: {
+          name: error instanceof Error ? error.name : "unknown",
+          code: error && typeof error === "object" && "code" in error ? String(error.code) : "",
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+    throw error;
+  }
 }
 
 function codeEmail(code: string, purpose: "reset" | "signup") {
