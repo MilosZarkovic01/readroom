@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BadgeConfetti } from "@/components/BadgeConfetti";
 import { BadgeIcon, badgeTileClass } from "@/components/BadgeIcon";
 import type { BadgeAward } from "@/lib/badges";
 
@@ -31,11 +32,14 @@ export function BadgeUnlockModal({
         className="badge-unlock-in w-full max-w-[360px] rounded-[28px] border border-beige bg-ivory px-6 py-8 text-center"
       >
         <p className="text-xs tracking-[0.18em] text-walnut uppercase">New badge</p>
-        <span
-          className={`mx-auto mt-5 flex h-20 w-20 items-center justify-center rounded-[22px] ${badgeTileClass(badge.group)}`}
-        >
-          <span className="badge-unlock-mark inline-flex">
-            <BadgeIcon badgeKey={badge.key} className="h-9 w-9" />
+        <span className="relative mx-auto mt-5 block h-28 w-full">
+          <BadgeConfetti burstKey={`${badge.key}-${index}`} />
+          <span
+            className={`badge-unlock-glow relative z-10 mx-auto flex h-20 w-20 items-center justify-center rounded-[22px] ${badgeTileClass(badge.group)}`}
+          >
+            <span className="badge-unlock-mark inline-flex">
+              <BadgeIcon badgeKey={badge.key} className="h-9 w-9" />
+            </span>
           </span>
         </span>
         <h2 id="badge-unlock-title" className="mt-5 font-serif text-3xl text-espresso">
