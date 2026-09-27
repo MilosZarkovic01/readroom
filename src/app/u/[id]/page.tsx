@@ -6,7 +6,7 @@ import { Avatar } from "@/components/Avatar";
 import { FollowButton } from "@/components/FollowButton";
 import { ActivityCard } from "@/components/ActivityCard";
 import { serializeActivity } from "@/lib/feed";
-import { BadgeSection } from "@/components/BadgeSection";
+import { BadgeCollection } from "@/components/BadgeCollection";
 import { ProfileStats } from "@/components/ProfileStats";
 import { displayName } from "@/lib/social";
 import { listUnlockedBadges } from "@/lib/unlock-badges";
@@ -76,7 +76,7 @@ export default async function PublicProfilePage({
         followingCount={followingCount}
         readCount={readCount}
       />
-      <BadgeSection badges={badges} />
+      <BadgeCollection badges={badges} />
       <h2 className="mt-8 text-base font-medium">Reading activity</h2>
       {entries.length === 0 ? (
         <p className="pt-8 text-center text-sm text-warm-gray">No activity yet.</p>

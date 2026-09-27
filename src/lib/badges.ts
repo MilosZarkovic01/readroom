@@ -25,6 +25,19 @@ export type BadgeDefinition = {
   group: "reading" | "review" | "special";
 };
 
+export type BadgeAward = BadgeDefinition & { unlockedAt: string };
+
+export function readUnlockedFromApi(payload: unknown): BadgeAward[] {
+  if (!payload || typeof payload !== "object" || !("unlocked" in payload)) return [];
+  const unlocked = (payload as { unlocked?: unknown }).unlocked;
+  if (!Array.isArray(unlocked)) return [];
+  return unlocked.filter((item): item is BadgeAward => {
+    if (!item || typeof item !== "object") return false;
+    const badge = item as BadgeAward;
+    return Boolean(badge.key && badge.name && badge.description && badge.unlockedAt);
+  });
+}
+
 export const BADGES: BadgeDefinition[] = [
   {
     key: "first_chapter",

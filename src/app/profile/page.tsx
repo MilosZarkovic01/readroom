@@ -1,20 +1,36 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { ActivityCard } from "@/components/ActivityCard";
 import { AppShell } from "@/components/AppShell";
+import { BadgeCollection } from "@/components/BadgeCollection";
 import { LogoutButton } from "@/components/LogoutButton";
-import { BadgeSection } from "@/components/BadgeSection";
 import { ProfileStats } from "@/components/ProfileStats";
+import { serializeActivity } from "@/lib/feed";
 import { listUnlockedBadges } from "@/lib/unlock-badges";
 
 export default async function ProfilePage() {
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  const [readCount, followerCount, followingCount, badges] = await Promise.all([
+  const [readCount, followerCount, followingCount, badges, entries] = await Promise.all([
     prisma.libraryEntry.count({ where: { userId: session.user.id, status: "READ" } }),
     prisma.follow.count({ where: { followingId: session.user.id } }),
     prisma.follow.count({ where: { followerId: session.user.id } }),
     listUnlockedBadges(session.user.id),
+    prisma.libraryEntry.findMany({
+      where: { userId: session.user.id },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        book: { select: { title: true, author: true, coverId: true } },
+        likes: { select: { userId: true } },
+        comments: {
+          include: { user: { select: { id: true, name: true, email: true } } },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 30,
+    }),
   ]);
 
   const name = session.user.name || "Reader";
@@ -35,7 +51,17 @@ export default async function ProfilePage() {
         followingCount={followingCount}
         readCount={readCount}
       />
-      <BadgeSection badges={badges} />
+      <BadgeCollection badges={badges} />
+      <h2 className="mt-8 text-base font-medium">Reading activity</h2>
+      {entries.length === 0 ? (
+        <p className="pt-8 text-center text-sm text-warm-gray">No activity yet.</p>
+      ) : (
+        <div>
+          {entries.map((entry) => (
+            <ActivityCard key={entry.id} item={serializeActivity(entry, session.user.id)} />
+          ))}
+        </div>
+      )}
       <div className="mt-8 mb-2">
         <LogoutButton />
       </div>

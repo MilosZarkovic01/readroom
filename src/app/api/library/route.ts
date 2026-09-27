@@ -103,9 +103,9 @@ export async function POST(request: Request) {
       include: { book: true },
     });
 
-    await unlockEarnedBadges(session.user.id);
+    const unlocked = await unlockEarnedBadges(session.user.id);
 
-    return NextResponse.json({ entry }, { status: 201 });
+    return NextResponse.json({ entry, unlocked }, { status: 201 });
   } catch (error) {
     console.error("Failed to add library book", error);
     return NextResponse.json({ error: "Could not add that book. Try again." }, { status: 500 });

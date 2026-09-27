@@ -59,9 +59,9 @@ export async function PATCH(request: Request, context: RouteContext) {
       include: { book: true },
     });
 
-    await unlockEarnedBadges(session.user.id);
+    const unlocked = await unlockEarnedBadges(session.user.id);
 
-    return NextResponse.json({ entry });
+    return NextResponse.json({ entry, unlocked });
   } catch (error) {
     console.error("Failed to update library entry", error);
     return NextResponse.json({ error: "Could not save your review. Try again." }, { status: 500 });

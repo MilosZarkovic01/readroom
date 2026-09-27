@@ -1,9 +1,16 @@
 import { prisma } from "@/lib/prisma";
-import { BADGES, qualifyBadgeKeys, type BadgeDefinition } from "@/lib/badges";
+import { BADGES, qualifyBadgeKeys, type BadgeAward } from "@/lib/badges";
 
-export type UnlockedBadge = BadgeDefinition & { unlockedAt: Date };
+function toAwards(rows: { badgeKey: string; unlockedAt: Date }[]): BadgeAward[] {
+  const catalog = new Map(BADGES.map((badge) => [badge.key, badge]));
+  return rows.flatMap((row) => {
+    const definition = catalog.get(row.badgeKey as BadgeAward["key"]);
+    if (!definition) return [];
+    return [{ ...definition, unlockedAt: row.unlockedAt.toISOString() }];
+  });
+}
 
-export async function unlockEarnedBadges(userId: string) {
+export async function unlockEarnedBadges(userId: string): Promise<BadgeAward[]> {
   const entries = await prisma.libraryEntry.findMany({
     where: { userId },
     select: {
@@ -24,7 +31,7 @@ export async function unlockEarnedBadges(userId: string) {
       pageCount: entry.book.pageCount,
     })),
   );
-  if (keys.length === 0) return;
+  if (keys.length === 0) return [];
 
   const existing = await prisma.userBadge.findMany({
     where: { userId, badgeKey: { in: keys } },
@@ -32,23 +39,23 @@ export async function unlockEarnedBadges(userId: string) {
   });
   const already = new Set(existing.map((row) => row.badgeKey));
   const fresh = keys.filter((badgeKey) => !already.has(badgeKey));
-  if (fresh.length === 0) return;
+  if (fresh.length === 0) return [];
 
   await prisma.userBadge.createMany({
     data: fresh.map((badgeKey) => ({ userId, badgeKey })),
   });
+  const rows = await prisma.userBadge.findMany({
+    where: { userId, badgeKey: { in: fresh } },
+    orderBy: { unlockedAt: "asc" },
+  });
+  return toAwards(rows);
 }
 
-export async function listUnlockedBadges(userId: string): Promise<UnlockedBadge[]> {
+export async function listUnlockedBadges(userId: string): Promise<BadgeAward[]> {
   await unlockEarnedBadges(userId);
   const rows = await prisma.userBadge.findMany({
     where: { userId },
     orderBy: { unlockedAt: "asc" },
   });
-  const catalog = new Map(BADGES.map((badge) => [badge.key, badge]));
-  return rows.flatMap((row) => {
-    const definition = catalog.get(row.badgeKey as UnlockedBadge["key"]);
-    if (!definition) return [];
-    return [{ ...definition, unlockedAt: row.unlockedAt }];
-  });
+  return toAwards(rows);
 }

@@ -1,5 +1,11 @@
 import { expect, test } from "vitest";
-import { BADGES, parsePageCount, qualifyBadgeKeys, type BadgeEntrySnapshot } from "../../src/lib/badges";
+import {
+  BADGES,
+  parsePageCount,
+  qualifyBadgeKeys,
+  readUnlockedFromApi,
+  type BadgeEntrySnapshot,
+} from "../../src/lib/badges";
 
 function entry(partial: Partial<BadgeEntrySnapshot>): BadgeEntrySnapshot {
   return {
@@ -72,6 +78,18 @@ test("counts one review per library book and needs both rating and review for th
   expect(keys).toContain("reviewer");
   expect(keys).not.toContain("thoughtful_reader");
   expect(keys).not.toContain("dedicated_reviewer");
+});
+
+test("reads newly unlocked badges from a library response", () => {
+  const award = {
+    key: "first_chapter",
+    name: "First Chapter",
+    description: "You finished your first book.",
+    group: "reading",
+    unlockedAt: "2026-09-27T10:00:00.000Z",
+  };
+  expect(readUnlockedFromApi({ unlocked: [award] })).toEqual([award]);
+  expect(readUnlockedFromApi({ error: "nope" })).toEqual([]);
 });
 
 test("parsePageCount keeps only positive finite counts", () => {
