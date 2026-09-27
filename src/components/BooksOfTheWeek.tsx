@@ -42,7 +42,7 @@ export function BooksOfTheWeek({ books }: { books: OpenLibraryBook[] }) {
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
       >
-        <div className="flex flex-col items-center text-center lg:flex-row lg:items-center lg:justify-center lg:gap-10 lg:text-left">
+        <div className="flex flex-col items-center text-center lg:flex-row lg:items-center lg:justify-center lg:gap-10">
           <div className="relative flex w-full items-center justify-center py-2 lg:static lg:w-auto lg:shrink-0">
             {total > 1 ? (
               <button
@@ -69,8 +69,8 @@ export function BooksOfTheWeek({ books }: { books: OpenLibraryBook[] }) {
               </button>
             ) : null}
           </div>
-          <div className="flex w-full flex-col items-center lg:max-w-sm lg:items-start">
-            <h3 className="mt-5 max-w-[16rem] font-sans text-lg leading-snug text-espresso lg:mt-0 lg:max-w-none lg:text-2xl">{book.title}</h3>
+          <div className="flex w-full flex-col items-center lg:w-auto lg:max-w-sm">
+            <h3 className="mt-5 max-w-[16rem] font-sans text-lg leading-snug text-espresso lg:mt-0 lg:max-w-md lg:text-2xl">{book.title}</h3>
             <p className="mt-1 font-sans text-xs text-warm-gray lg:text-sm">{book.author}</p>
             <Link
               href={`/search?q=${encodeURIComponent(book.title)}&field=title`}

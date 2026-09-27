@@ -49,7 +49,7 @@ export function FriendsTabs({
         <p className="mb-8 hidden font-sans text-sm text-warm-gray lg:block">No readers match that search.</p>
       ) : null}
       <div
-        className={`lg:mx-auto lg:w-full lg:max-w-3xl ${
+        className={`lg:mx-auto lg:w-full lg:max-w-3xl lg:border-x lg:border-beige lg:px-6 ${
           tab === "activity" ? "" : "hidden lg:block"
         }`}
       >

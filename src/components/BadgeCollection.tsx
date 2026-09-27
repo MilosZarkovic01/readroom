@@ -22,10 +22,10 @@ export function BadgeCollection({ badges }: { badges: BadgeAward[] }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-6 flex w-full items-center gap-3 rounded-2xl border border-beige bg-ivory px-3 py-3 text-left"
+        className="mt-6 flex w-full items-center gap-3 rounded-2xl border border-beige bg-ivory px-3 py-3 text-left lg:mt-8 lg:w-fit lg:gap-2.5 lg:px-2.5 lg:py-2"
       >
         <span
-          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
+          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl lg:h-10 lg:w-10 ${
             latest ? badgeTileClass(latest.group) : "bg-beige text-espresso"
           }`}
         >

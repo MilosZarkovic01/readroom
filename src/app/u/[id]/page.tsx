@@ -77,17 +77,22 @@ export default async function PublicProfilePage({
             readCount={readCount}
           />
         </div>
-        <div className="w-full lg:max-w-sm">
-          <BadgeCollection badges={badges} />
-        </div>
+      </div>
+      <div className="w-full">
+        <BadgeCollection badges={badges} />
       </div>
       <h2 className="mt-8 text-base font-medium lg:mt-10">Reading activity</h2>
       {entries.length === 0 ? (
         <p className="pt-8 text-center text-sm text-warm-gray">No activity yet.</p>
       ) : (
-        <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-10">
+        <div className="lg:grid lg:grid-cols-2">
           {entries.map((entry) => (
-            <ActivityCard key={entry.id} item={serializeActivity(entry, session.user.id)} />
+            <div
+              key={entry.id}
+              className="lg:flex lg:h-full lg:border-b lg:border-beige lg:odd:pr-8 lg:even:border-l lg:even:pl-8 lg:[&>article]:h-full lg:[&>article]:border-b-0"
+            >
+              <ActivityCard item={serializeActivity(entry, session.user.id)} />
+            </div>
           ))}
         </div>
       )}

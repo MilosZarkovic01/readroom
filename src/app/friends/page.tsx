@@ -22,9 +22,9 @@ export default async function FriendsPage({
 
   return (
     <AppShell>
-      <div className="mb-4 lg:mb-6 lg:flex lg:items-center lg:gap-6">
+      <div className="mb-4 lg:mx-auto lg:mb-6 lg:w-full lg:max-w-3xl lg:text-center">
         <h1 className="font-sans text-[32px] font-medium text-espresso">Friends</h1>
-        <form action="/friends" method="get" className="hidden lg:block lg:w-full lg:max-w-sm">
+        <form action="/friends" method="get" className="hidden lg:mt-4 lg:block lg:w-full">
           <input
             name="q"
             defaultValue={query}
