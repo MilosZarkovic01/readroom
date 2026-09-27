@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { searchOpenLibrary, type SearchField } from "@/lib/open-library";
+import { resolveSearchPageSize, searchOpenLibrary, type SearchField } from "@/lib/open-library";
 import { prisma } from "@/lib/prisma";
 
 const FIELDS = new Set<SearchField>(["all", "title", "author"]);
@@ -16,9 +16,10 @@ export async function GET(request: Request) {
   const fieldParam = (searchParams.get("field") ?? "all") as SearchField;
   const field = FIELDS.has(fieldParam) ? fieldParam : "all";
   const page = Number(searchParams.get("page") ?? "1");
+  const pageSize = resolveSearchPageSize(Number(searchParams.get("limit") ?? ""));
 
   try {
-    const result = await searchOpenLibrary(q, field, page);
+    const result = await searchOpenLibrary(q, field, page, pageSize);
     const keys = result.books.map((book) => book.openLibraryKey);
     const owned = await prisma.libraryEntry.findMany({
       where: {

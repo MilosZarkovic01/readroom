@@ -79,7 +79,7 @@ export function SearchResultCard({
       <button
         type="button"
         onClick={() => setStep("detail")}
-        className="flex w-full items-center gap-3 py-3 text-left xl:border-b xl:border-beige xl:transition-colors xl:hover:bg-cream/70"
+        className="flex w-full items-center gap-3 py-3 text-left"
       >
         <BookCover coverId={book.coverId} title={book.title} size="XS" priority={priority} />
         <span className="min-w-0 flex-1">

@@ -4,6 +4,11 @@ import { pickSubjects } from "@/lib/subjects";
 export type SearchField = "all" | "title" | "author";
 
 export const SEARCH_PAGE_SIZE = 5;
+export const DESKTOP_SEARCH_PAGE_SIZE = 18;
+
+export function resolveSearchPageSize(pageSize?: number) {
+  return pageSize === DESKTOP_SEARCH_PAGE_SIZE ? DESKTOP_SEARCH_PAGE_SIZE : SEARCH_PAGE_SIZE;
+}
 
 export type OpenLibraryBook = {
   openLibraryKey: string;
@@ -95,11 +100,13 @@ export async function searchOpenLibrary(
   query: string,
   field: SearchField = "all",
   page = 1,
+  pageSize = SEARCH_PAGE_SIZE,
 ): Promise<SearchResult> {
   const trimmed = query.trim();
   const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+  const safePageSize = resolveSearchPageSize(pageSize);
   if (!trimmed) {
-    return { books: [], page: 1, pageSize: SEARCH_PAGE_SIZE, numFound: 0, totalPages: 0 };
+    return { books: [], page: 1, pageSize: safePageSize, numFound: 0, totalPages: 0 };
   }
 
   const q =
@@ -115,8 +122,8 @@ export async function searchOpenLibrary(
     "fields",
     "key,title,author_name,cover_i,first_publish_year,first_sentence,subject,number_of_pages_median",
   );
-  url.searchParams.set("limit", String(SEARCH_PAGE_SIZE));
-  url.searchParams.set("offset", String((safePage - 1) * SEARCH_PAGE_SIZE));
+  url.searchParams.set("limit", String(safePageSize));
+  url.searchParams.set("offset", String((safePage - 1) * safePageSize));
 
   const response = await fetch(url, {
     headers: { Accept: "application/json" },
@@ -144,9 +151,9 @@ export async function searchOpenLibrary(
   return {
     books,
     page: safePage,
-    pageSize: SEARCH_PAGE_SIZE,
+    pageSize: safePageSize,
     numFound,
-    totalPages: Math.max(1, Math.ceil(numFound / SEARCH_PAGE_SIZE)),
+    totalPages: Math.max(1, Math.ceil(numFound / safePageSize)),
   };
 }
 

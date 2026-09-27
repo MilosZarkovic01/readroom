@@ -38,15 +38,13 @@ export default async function ProfilePage() {
 
   return (
     <AppShell>
-      <div className="lg:grid lg:grid-cols-[17.5rem_minmax(0,1fr)] lg:items-start lg:gap-x-12 xl:grid-cols-[20rem_minmax(0,1fr)] xl:gap-x-16">
-        <div className="flex flex-col items-center pt-4 text-center lg:col-start-1 lg:row-start-1 lg:items-start lg:pt-2 lg:text-left">
-          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-beige font-serif text-4xl text-espresso">
-            {initial}
-          </div>
-          <h1 className="mt-4 font-serif text-3xl">{name}</h1>
-          <p className="text-sm text-warm-gray">{session.user.email}</p>
+      <div className="flex flex-col items-center pt-4 text-center">
+        <div className="flex h-24 w-24 items-center justify-center rounded-full bg-beige font-serif text-4xl text-espresso">
+          {initial}
         </div>
-        <div className="lg:col-start-1 lg:row-start-2">
+        <h1 className="mt-4 font-serif text-3xl">{name}</h1>
+        <p className="text-sm text-warm-gray">{session.user.email}</p>
+        <div className="w-full lg:max-w-sm">
           <ProfileStats
             userId={session.user.id}
             followerCount={followerCount}
@@ -54,24 +52,22 @@ export default async function ProfilePage() {
             readCount={readCount}
           />
         </div>
-        <div className="lg:col-start-1 lg:row-start-3">
+        <div className="w-full lg:max-w-sm">
           <BadgeCollection badges={badges} />
         </div>
-        <h2 className="mt-8 text-base font-medium lg:col-start-2 lg:row-start-1 lg:mt-2">Reading activity</h2>
-        {entries.length === 0 ? (
-          <p className="pt-8 text-center text-sm text-warm-gray lg:col-start-2 lg:row-start-2 lg:max-w-2xl lg:pt-4 lg:text-left">
-            No activity yet.
-          </p>
-        ) : (
-          <div className="lg:col-start-2 lg:row-start-2 lg:row-span-4 lg:max-w-2xl">
-            {entries.map((entry) => (
-              <ActivityCard key={entry.id} item={serializeActivity(entry, session.user.id)} />
-            ))}
-          </div>
-        )}
-        <div className="mt-8 mb-2 lg:col-start-1 lg:row-start-4">
-          <LogoutButton />
+      </div>
+      <h2 className="mt-8 text-base font-medium lg:mt-10">Reading activity</h2>
+      {entries.length === 0 ? (
+        <p className="pt-8 text-center text-sm text-warm-gray">No activity yet.</p>
+      ) : (
+        <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-10">
+          {entries.map((entry) => (
+            <ActivityCard key={entry.id} item={serializeActivity(entry, session.user.id)} />
+          ))}
         </div>
+      )}
+      <div className="mt-8 mb-2 lg:mx-auto lg:max-w-xs">
+        <LogoutButton />
       </div>
     </AppShell>
   );

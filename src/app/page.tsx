@@ -10,6 +10,7 @@ import { StatusChip } from "@/components/StatusChip";
 import { STATUSES } from "@/lib/status";
 import { getBooksOfTheWeek } from "@/lib/recommendations";
 import landingBooks from "@/assets/landing-books.webp";
+import landingBooksDesktop from "@/assets/landing-books-desktop.webp";
 
 function firstName(name?: string | null, email?: string | null) {
   if (name?.trim()) return name.trim().split(" ")[0];
@@ -30,8 +31,17 @@ export default async function HomePage() {
             priority
             placeholder="blur"
             quality={70}
-            sizes="(min-width: 1024px) 70vw, 430px"
-            className="object-cover object-center"
+            sizes="430px"
+            className="object-cover object-center lg:hidden"
+          />
+          <Image
+            src={landingBooksDesktop}
+            alt="A stack of books and a coffee mug on a sunlit table"
+            fill
+            placeholder="blur"
+            quality={90}
+            sizes="(min-width: 1024px) 70vw, 1px"
+            className="hidden object-cover object-[center_40%] lg:block"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-espresso/55 via-espresso/15 to-transparent" />
           <div className="absolute inset-x-0 bottom-8 px-8 text-center text-ivory lg:bottom-16 lg:left-0 lg:max-w-xl lg:px-16 lg:text-left lg:right-auto">
@@ -94,40 +104,30 @@ export default async function HomePage() {
           </Link>
         ))}
       </div>
-      {continueReading.length > 0 || booksOfTheWeek.length > 0 ? (
-        <div
-          className={
-            continueReading.length > 0 && booksOfTheWeek.length > 0
-              ? "xl:grid xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start xl:gap-x-12"
-              : undefined
-          }
-        >
-          {continueReading.length > 0 ? (
-            <div>
-              <div className="mt-8 flex items-center justify-between">
-                <h2 className="text-base font-medium">Continue reading</h2>
-                <Link href="/library?shelf=READING" className="text-sm text-warm-gray">
-                  See all
+      {continueReading.length > 0 ? (
+        <>
+          <div className="mt-8 flex items-center justify-between">
+            <h2 className="text-base font-medium">Continue reading</h2>
+            <Link href="/library?shelf=READING" className="text-sm text-warm-gray">
+              See all
+            </Link>
+          </div>
+          <ul className="mt-2 divide-y divide-beige">
+            {continueReading.map((entry) => (
+              <li key={entry.id}>
+                <Link href="/library?shelf=READING" className="flex items-center gap-3 py-3">
+                  <BookCover coverId={entry.book.coverId} title={entry.book.title} size="XS" />
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{entry.book.title}</p>
+                    <p className="truncate text-sm text-warm-gray">{entry.book.author}</p>
+                  </div>
                 </Link>
-              </div>
-              <ul className="mt-2 divide-y divide-beige">
-                {continueReading.map((entry) => (
-                  <li key={entry.id}>
-                    <Link href="/library?shelf=READING" className="flex items-center gap-3 py-3">
-                      <BookCover coverId={entry.book.coverId} title={entry.book.title} size="XS" />
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">{entry.book.title}</p>
-                        <p className="truncate text-sm text-warm-gray">{entry.book.author}</p>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-          {booksOfTheWeek.length ? <BooksOfTheWeek books={booksOfTheWeek} /> : null}
-        </div>
+              </li>
+            ))}
+          </ul>
+        </>
       ) : null}
+      {booksOfTheWeek.length ? <BooksOfTheWeek books={booksOfTheWeek} /> : null}
     </AppShell>
   );
 }
