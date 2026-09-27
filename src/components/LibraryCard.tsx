@@ -3,10 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ReadingStatus } from "@prisma/client";
+import { BadgeUnlockModal } from "@/components/BadgeUnlockModal";
 import { BookCover } from "@/components/BookCover";
 import { IconChevron, IconClose } from "@/components/Icons";
 import { ShelfPicker } from "@/components/ShelfPicker";
 import { StarRating } from "@/components/StarRating";
+import { readUnlockedFromApi, type BadgeAward } from "@/lib/badges";
 import { formatRating } from "@/lib/rating";
 import { STATUSES, STATUS_SHORT } from "@/lib/status";
 import { CategoryChips } from "@/components/CategoryChips";
@@ -33,6 +35,7 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
   const [status, setStatus] = useState(entry.status);
   const [rating, setRating] = useState<number | null>(entry.rating);
   const [review, setReview] = useState(entry.review ?? "");
+  const [unlocked, setUnlocked] = useState<BadgeAward[]>([]);
 
   async function patch(body: {
     status?: ReadingStatus;
@@ -46,9 +49,14 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      const payload = await response.json().catch(() => null);
       if (!response.ok) {
-        const payload = await response.json().catch(() => null);
         throw new Error(payload?.error ?? "Could not save your review.");
+      }
+      const awards = readUnlockedFromApi(payload);
+      if (awards.length) {
+        setOpen(false);
+        setUnlocked(awards);
       }
       router.refresh();
     } catch (error) {
@@ -155,6 +163,9 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
             </button>
           </div>
         </div>
+      ) : null}
+      {unlocked.length ? (
+        <BadgeUnlockModal badges={unlocked} onDone={() => setUnlocked([])} />
       ) : null}
     </>
   );

@@ -3,11 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ReadingStatus } from "@prisma/client";
+import { BadgeUnlockModal } from "@/components/BadgeUnlockModal";
 import { BookCover } from "@/components/BookCover";
 import { CategoryChips } from "@/components/CategoryChips";
 import { IconChevron, IconClose } from "@/components/Icons";
 import { ShelfPicker } from "@/components/ShelfPicker";
 import { StarRating } from "@/components/StarRating";
+import { readUnlockedFromApi, type BadgeAward } from "@/lib/badges";
 import { STATUS_LABELS } from "@/lib/status";
 import type { OpenLibraryBook } from "@/lib/open-library";
 
@@ -28,6 +30,7 @@ export function SearchResultCard({
   const [review, setReview] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [unlocked, setUnlocked] = useState<BadgeAward[]>([]);
 
   async function add() {
     setBusy(true);
@@ -44,6 +47,7 @@ export function SearchResultCard({
           firstPublishYear: book.firstPublishYear,
           description: book.description,
           subjects: book.subjects,
+          pageCount: book.pageCount,
           status,
           rating,
           review,
@@ -53,8 +57,14 @@ export function SearchResultCard({
         const payload = await response.json().catch(() => null);
         throw new Error(payload?.error ?? "Could not add book");
       }
+      const payload = await response.json().catch(() => null);
+      const awards = readUnlockedFromApi(payload);
       setOwned(status);
       setStep("closed");
+      if (awards.length) {
+        setUnlocked(awards);
+        return;
+      }
       router.push(`/library?shelf=${status}`);
       router.refresh();
     } catch (err) {
@@ -164,6 +174,16 @@ export function SearchResultCard({
             )}
           </div>
         </div>
+      ) : null}
+      {unlocked.length ? (
+        <BadgeUnlockModal
+          badges={unlocked}
+          onDone={() => {
+            setUnlocked([]);
+            router.push(`/library?shelf=${status}`);
+            router.refresh();
+          }}
+        />
       ) : null}
     </>
   );

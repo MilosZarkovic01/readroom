@@ -6,8 +6,10 @@ import { Avatar } from "@/components/Avatar";
 import { FollowButton } from "@/components/FollowButton";
 import { ActivityCard } from "@/components/ActivityCard";
 import { serializeActivity } from "@/lib/feed";
+import { BadgeCollection } from "@/components/BadgeCollection";
 import { ProfileStats } from "@/components/ProfileStats";
 import { displayName } from "@/lib/social";
+import { listUnlockedBadges } from "@/lib/unlock-badges";
 
 export default async function PublicProfilePage({
   params,
@@ -24,7 +26,7 @@ export default async function PublicProfilePage({
   });
   if (!user) notFound();
 
-  const [readCount, followerCount, followingCount, follow, entries] =
+  const [readCount, followerCount, followingCount, follow, entries, badges] =
     await Promise.all([
       prisma.libraryEntry.count({ where: { userId: id, status: "READ" } }),
       prisma.follow.count({ where: { followingId: id } }),
@@ -48,6 +50,7 @@ export default async function PublicProfilePage({
         orderBy: { updatedAt: "desc" },
         take: 30,
       }),
+      listUnlockedBadges(id),
     ]);
 
   const name = displayName(user);
@@ -73,6 +76,7 @@ export default async function PublicProfilePage({
         followingCount={followingCount}
         readCount={readCount}
       />
+      <BadgeCollection badges={badges} />
       <h2 className="mt-8 text-base font-medium">Reading activity</h2>
       {entries.length === 0 ? (
         <p className="pt-8 text-center text-sm text-warm-gray">No activity yet.</p>

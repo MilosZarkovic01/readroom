@@ -11,6 +11,7 @@ const books = [
     coverId: 12822618,
     description: "A duel between two magicians in a mysterious circus that appears only at night.",
     subjects: JSON.stringify(["Fantasy", "Romance", "Magic"]),
+    pageCount: 387,
   },
   {
     openLibraryKey: "/works/OL82563W",
@@ -19,6 +20,7 @@ const books = [
     coverId: 8703984,
     description: "The story of the witch Circe, exiled to a remote island.",
     subjects: JSON.stringify(["Mythology", "Fantasy", "Retelling"]),
+    pageCount: 393,
   },
   {
     openLibraryKey: "/works/OL257943W",
@@ -27,6 +29,7 @@ const books = [
     coverId: 10390016,
     description: "A man lives in a house of infinite halls and drowned statues.",
     subjects: JSON.stringify(["Fantasy", "Mystery"]),
+    pageCount: 245,
   },
 ];
 

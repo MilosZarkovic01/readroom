@@ -4,7 +4,9 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { STATUSES } from "@/lib/status";
 import { isValidRating } from "@/lib/rating";
+import { parsePageCount } from "@/lib/badges";
 import { pickSubjects, serializeSubjects } from "@/lib/subjects";
+import { unlockEarnedBadges } from "@/lib/unlock-badges";
 
 const STATUSES_SET = new Set<ReadingStatus>(STATUSES);
 
@@ -43,6 +45,7 @@ export async function POST(request: Request) {
         : null;
   const description = body?.description ? String(body.description).slice(0, 1000) : null;
   const subjects = serializeSubjects(pickSubjects(body?.subjects));
+  const pageCount = parsePageCount(body?.pageCount);
   const status = body?.status as ReadingStatus;
   const review = body?.review != null ? String(body.review).slice(0, 500).trim() || null : undefined;
   const rating = body?.rating === null || body?.rating === undefined ? undefined : body.rating;
@@ -68,6 +71,7 @@ export async function POST(request: Request) {
         firstPublishYear,
         description,
         subjects,
+        pageCount,
       },
       update: {
         title,
@@ -76,6 +80,7 @@ export async function POST(request: Request) {
         firstPublishYear,
         description,
         subjects,
+        ...(pageCount != null ? { pageCount } : {}),
       },
     });
 
@@ -98,7 +103,9 @@ export async function POST(request: Request) {
       include: { book: true },
     });
 
-    return NextResponse.json({ entry }, { status: 201 });
+    const unlocked = await unlockEarnedBadges(session.user.id);
+
+    return NextResponse.json({ entry, unlocked }, { status: 201 });
   } catch (error) {
     console.error("Failed to add library book", error);
     return NextResponse.json({ error: "Could not add that book. Try again." }, { status: 500 });

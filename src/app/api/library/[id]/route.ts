@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { STATUSES } from "@/lib/status";
 import { isValidRating } from "@/lib/rating";
+import { unlockEarnedBadges } from "@/lib/unlock-badges";
 
 const STATUSES_SET = new Set<ReadingStatus>(STATUSES);
 
@@ -58,7 +59,9 @@ export async function PATCH(request: Request, context: RouteContext) {
       include: { book: true },
     });
 
-    return NextResponse.json({ entry });
+    const unlocked = await unlockEarnedBadges(session.user.id);
+
+    return NextResponse.json({ entry, unlocked });
   } catch (error) {
     console.error("Failed to update library entry", error);
     return NextResponse.json({ error: "Could not save your review. Try again." }, { status: 500 });
