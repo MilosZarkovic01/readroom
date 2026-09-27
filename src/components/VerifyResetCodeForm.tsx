@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
+import { authCardClass } from "@/components/AuthFrame";
 import { resendResetAction, verifyResetAction } from "@/lib/reset-actions";
 import { IconLogo } from "@/components/Icons";
 
@@ -20,7 +21,7 @@ export function VerifyResetCodeForm() {
   }
 
   return (
-    <form action={formAction} className="mx-auto w-full max-w-[430px] space-y-4 px-6 py-10">
+    <form action={formAction} className={authCardClass}>
       <div className="mb-4 flex flex-col items-center text-center">
         <IconLogo className="h-12 w-12 text-espresso" />
         <h1 className="mt-3 font-serif text-4xl text-espresso">Enter code</h1>

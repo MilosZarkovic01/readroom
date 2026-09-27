@@ -22,7 +22,17 @@ export default async function FriendsPage({
 
   return (
     <AppShell>
-      <h1 className="mb-4 font-sans text-[32px] font-medium text-espresso">Friends</h1>
+      <div className="mb-4 lg:mx-auto lg:mb-6 lg:flex lg:w-full lg:max-w-3xl lg:items-center lg:gap-6">
+        <h1 className="font-sans text-[32px] font-medium text-espresso lg:shrink-0">Friends</h1>
+        <form action="/friends" method="get" className="hidden lg:block lg:min-w-0 lg:flex-1">
+          <input
+            name="q"
+            defaultValue={query}
+            placeholder="Find readers by name or email"
+            className="w-full rounded-full border border-beige bg-cream px-4 py-2.5 font-sans text-sm outline-none"
+          />
+        </form>
+      </div>
       <FriendsTabs feed={feed} query={query} highlightId={post} people={people} />
     </AppShell>
   );

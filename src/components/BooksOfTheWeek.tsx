@@ -30,7 +30,7 @@ export function BooksOfTheWeek({ books }: { books: OpenLibraryBook[] }) {
   }
 
   return (
-    <section className="mt-10">
+    <section className="mt-10 lg:mx-auto lg:mt-12 lg:max-w-3xl">
       <div className="text-center">
         <p className="font-sans text-[10px] font-medium tracking-[0.28em] text-terracotta uppercase">This week</p>
         <h2 className="mt-1 font-sans text-[26px] leading-tight text-espresso">Books of the Week</h2>
@@ -38,12 +38,12 @@ export function BooksOfTheWeek({ books }: { books: OpenLibraryBook[] }) {
       </div>
 
       <div
-        className="relative mt-6 overflow-hidden rounded-[1.75rem] bg-cream px-3 pb-5 pt-5"
+        className="relative mt-6 overflow-hidden rounded-[1.75rem] bg-cream px-3 pb-5 pt-5 lg:px-8 lg:py-8"
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
       >
-        <div className="flex flex-col items-center text-center">
-          <div className="relative flex w-full items-center justify-center py-2">
+        <div className="flex flex-col items-center text-center lg:flex-row lg:items-center lg:justify-center lg:gap-10">
+          <div className="relative flex w-full items-center justify-center py-2 lg:static lg:w-auto lg:shrink-0">
             {total > 1 ? (
               <button
                 type="button"
@@ -69,14 +69,16 @@ export function BooksOfTheWeek({ books }: { books: OpenLibraryBook[] }) {
               </button>
             ) : null}
           </div>
-          <h3 className="mt-5 max-w-[16rem] font-sans text-lg leading-snug text-espresso">{book.title}</h3>
-          <p className="mt-1 font-sans text-xs text-warm-gray">{book.author}</p>
-          <Link
-            href={`/search?q=${encodeURIComponent(book.title)}&field=title`}
-            className="mt-4 w-full rounded-full bg-deep-brown py-2.5 text-center font-sans text-xs font-medium text-ivory"
-          >
-            View in search
-          </Link>
+          <div className="flex w-full flex-col items-center lg:w-auto lg:max-w-sm">
+            <h3 className="mt-5 max-w-[16rem] font-sans text-lg leading-snug text-espresso lg:mt-0 lg:max-w-md lg:text-2xl">{book.title}</h3>
+            <p className="mt-1 font-sans text-xs text-warm-gray lg:text-sm">{book.author}</p>
+            <Link
+              href={`/search?q=${encodeURIComponent(book.title)}&field=title`}
+              className="mt-4 block w-full rounded-full bg-deep-brown py-2.5 text-center font-sans text-xs font-medium text-ivory lg:mt-5 lg:w-fit lg:px-8"
+            >
+              View in search
+            </Link>
+          </div>
         </div>
 
         {total > 1 ? (

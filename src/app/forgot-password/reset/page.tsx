@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { AuthFrame } from "@/components/AuthFrame";
 import { NewPasswordForm } from "@/components/NewPasswordForm";
 import { getVerifiedReset } from "@/lib/password-reset";
 
@@ -9,8 +10,8 @@ export default async function ResetPasswordPage() {
   const verified = await getVerifiedReset();
   if (!verified) redirect("/forgot-password");
   return (
-    <div className="phone-shell mx-auto min-h-full max-w-[430px]">
+    <AuthFrame>
       <NewPasswordForm />
-    </div>
+    </AuthFrame>
   );
 }

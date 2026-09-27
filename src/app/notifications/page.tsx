@@ -35,7 +35,7 @@ export default async function NotificationsPage() {
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-3 font-sans">
+        <div className="flex flex-col gap-3 font-sans xl:grid xl:grid-cols-2 xl:items-start xl:gap-4">
           {cards.map((item) => (
             <NotificationCard key={item.id} item={item} />
           ))}

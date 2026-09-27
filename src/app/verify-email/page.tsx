@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { AuthFrame } from "@/components/AuthFrame";
 import { VerifyEmailForm } from "@/components/VerifyEmailForm";
 import { getPendingSignup } from "@/lib/email-verify";
 
@@ -9,8 +10,8 @@ export default async function VerifyEmailPage() {
   const pending = await getPendingSignup();
   if (!pending) redirect("/register");
   return (
-    <div className="phone-shell mx-auto min-h-full max-w-[430px]">
+    <AuthFrame>
       <VerifyEmailForm inboxUrl={pending.inboxUrl} />
-    </div>
+    </AuthFrame>
   );
 }

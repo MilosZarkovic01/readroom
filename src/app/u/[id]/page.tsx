@@ -69,21 +69,30 @@ export default async function PublicProfilePage({
         ) : (
           <p className="mt-3 text-xs text-warm-gray">This is you</p>
         )}
+        <div className="w-full lg:max-w-sm">
+          <ProfileStats
+            userId={id}
+            followerCount={followerCount}
+            followingCount={followingCount}
+            readCount={readCount}
+          />
+        </div>
       </div>
-      <ProfileStats
-        userId={id}
-        followerCount={followerCount}
-        followingCount={followingCount}
-        readCount={readCount}
-      />
-      <BadgeCollection badges={badges} />
-      <h2 className="mt-8 text-base font-medium">Reading activity</h2>
+      <div className="w-full">
+        <BadgeCollection badges={badges} />
+      </div>
+      <h2 className="mt-8 text-base font-medium lg:mt-10">Reading activity</h2>
       {entries.length === 0 ? (
         <p className="pt-8 text-center text-sm text-warm-gray">No activity yet.</p>
       ) : (
-        <div>
+        <div className="lg:grid lg:grid-cols-2">
           {entries.map((entry) => (
-            <ActivityCard key={entry.id} item={serializeActivity(entry, session.user.id)} />
+            <div
+              key={entry.id}
+              className="lg:flex lg:h-full lg:border-b lg:border-beige lg:odd:pr-8 lg:even:border-l lg:even:pl-8 lg:[&>article]:h-full lg:[&>article]:border-b-0"
+            >
+              <ActivityCard item={serializeActivity(entry, session.user.id)} />
+            </div>
           ))}
         </div>
       )}

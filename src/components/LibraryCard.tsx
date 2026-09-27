@@ -84,7 +84,7 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex w-full items-center gap-3 py-3 text-left"
+        className="flex w-full items-center gap-3 py-3 text-left xl:border-b xl:border-beige xl:transition-colors xl:hover:bg-cream/70"
       >
         <BookCover coverId={entry.book.coverId} title={entry.book.title} size="XS" />
         <span className="min-w-0 flex-1">
@@ -99,8 +99,8 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
       </button>
 
       {open ? (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-espresso/35">
-          <div className="max-h-[90vh] w-full max-w-[430px] overflow-y-auto rounded-t-3xl bg-ivory px-5 pb-8 pt-4">
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-espresso/35 lg:items-center lg:p-6">
+          <div className="max-h-[90vh] w-full max-w-[430px] overflow-y-auto rounded-t-3xl bg-ivory px-5 pb-8 pt-4 lg:max-h-[min(85vh,760px)] lg:max-w-lg lg:rounded-3xl lg:shadow-[0_24px_80px_rgba(45,33,27,0.18)]">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-serif text-2xl text-espresso">Edit library</h2>
               <button
@@ -202,9 +202,11 @@ export function LibraryTabs({
       {shelf.length === 0 ? (
         <p className="pt-10 text-center text-sm text-warm-gray">Nothing on this shelf yet.</p>
       ) : (
-        <div className="divide-y divide-beige">
+        <div className="divide-y divide-beige xl:grid xl:grid-cols-2 xl:gap-x-8 xl:divide-y-0">
           {shelf.map((entry) => (
-            <LibraryCard key={entry.id} entry={entry} />
+            <div key={entry.id} className="xl:min-w-0">
+              <LibraryCard entry={entry} />
+            </div>
           ))}
         </div>
       )}

@@ -102,7 +102,7 @@ export function NotificationBell({ unread }: { unread: number }) {
         ) : null}
       </Link>
       {toasts.length > 0 ? (
-        <div className="pointer-events-none fixed top-[4.75rem] left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 px-5">
+        <div className="pointer-events-none fixed top-[4.75rem] left-1/2 z-40 w-full max-w-[430px] -translate-x-1/2 px-5 lg:top-6 lg:right-6 lg:left-auto lg:w-96 lg:max-w-none lg:translate-x-0 lg:px-0">
           <div className="pointer-events-auto flex w-full flex-col gap-2.5">
             {toasts.map((toast) => (
               <div key={toast.id} className="notify-pop">

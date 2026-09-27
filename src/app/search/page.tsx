@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { AppShell } from "@/components/AppShell";
+import { DesktopSearchResults } from "@/components/DesktopSearchResults";
 import { SearchResultCard } from "@/components/SearchResultCard";
 import { SearchBar } from "@/components/SearchBar";
 import { IconBack } from "@/components/Icons";
@@ -60,10 +61,10 @@ export default async function SearchPage({
 
   return (
     <AppShell topBar={false}>
-      <div className="flex items-center gap-3 pt-5">
+      <div className="flex items-center gap-3 pt-5 lg:pt-6">
         <Link
           href="/"
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-cream text-espresso"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-cream text-espresso lg:hidden"
           aria-label="Back"
         >
           <IconBack className="h-5 w-5" />
@@ -88,13 +89,13 @@ export default async function SearchPage({
           Authors
         </Link>
       </div>
-      {error ? <p className="mt-6 text-sm text-terracotta">{error}</p> : null}
+      {error ? <p className="mt-6 text-sm text-terracotta lg:hidden">{error}</p> : null}
       {!q ? (
         <p className="mt-10 text-center text-sm text-warm-gray">Start with a title or an author’s name.</p>
       ) : books.length === 0 && !error ? (
-        <p className="mt-10 text-center text-sm text-warm-gray">No books found for “{q}”.</p>
+        <p className="mt-10 text-center text-sm text-warm-gray lg:hidden">No books found for “{q}”.</p>
       ) : (
-        <>
+        <div className="lg:hidden">
           <div className="divide-y divide-beige">
             {books.map((book, index) => (
               <SearchResultCard
@@ -126,8 +127,9 @@ export default async function SearchPage({
               )}
             </div>
           ) : null}
-        </>
+        </div>
       )}
+      <DesktopSearchResults q={q} field={field} page={page} />
     </AppShell>
   );
 }

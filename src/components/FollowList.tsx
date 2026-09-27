@@ -12,7 +12,7 @@ export function FollowList({
   }
 
   return (
-    <div className="divide-y divide-beige font-sans">
+    <div className="divide-y divide-beige font-sans xl:grid xl:grid-cols-2 xl:gap-x-10 xl:divide-y-0">
       {users.map((user) => (
         <PeopleRow key={user.id} user={user} following={user.following} showFollow={!user.isSelf} />
       ))}
