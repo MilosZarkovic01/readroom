@@ -44,6 +44,7 @@ export function SearchResultCard({
           firstPublishYear: book.firstPublishYear,
           description: book.description,
           subjects: book.subjects,
+          pageCount: book.pageCount,
           status,
           rating,
           review,

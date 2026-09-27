@@ -29,6 +29,7 @@ model User {
   comments            ActivityComment[]
   notifications       Notification[]     @relation("Notifications")
   actedNotifications  Notification[]     @relation("NotificationActor")
+  badges              UserBadge[]
 }
 
 model Follow {
@@ -97,6 +98,7 @@ model Book {
   firstPublishYear  Int?
   description       String?
   subjects          String?
+  pageCount         Int?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   library           LibraryEntry[]
@@ -118,6 +120,17 @@ model LibraryEntry {
 
   @@unique([userId, bookId])
   @@index([userId, status])
+}
+
+model UserBadge {
+  id         String   @id @default(cuid())
+  userId     String
+  badgeKey   String
+  unlockedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeKey])
+  @@index([userId, unlockedAt])
 }
 
 model PasswordReset {

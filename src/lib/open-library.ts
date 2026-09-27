@@ -1,3 +1,4 @@
+import { parsePageCount } from "@/lib/badges";
 import { pickSubjects } from "@/lib/subjects";
 
 export type SearchField = "all" | "title" | "author";
@@ -12,6 +13,7 @@ export type OpenLibraryBook = {
   firstPublishYear: number | null;
   description: string | null;
   subjects: string[];
+  pageCount: number | null;
 };
 
 export type SearchResult = {
@@ -30,6 +32,7 @@ type OpenLibraryDoc = {
   first_publish_year?: number;
   first_sentence?: string | string[] | { value?: string };
   subject?: string[];
+  number_of_pages_median?: number;
 };
 
 function normalizeWorkKey(key: string) {
@@ -65,6 +68,7 @@ function mapDoc(doc: OpenLibraryDoc, extras?: { description: string | null; subj
     firstPublishYear: doc.first_publish_year ?? null,
     description: extras?.description ?? (fromSearch ? shorten(fromSearch) : null),
     subjects: extras?.subjects?.length ? extras.subjects : pickSubjects(doc.subject),
+    pageCount: parsePageCount(doc.number_of_pages_median),
   };
 }
 
@@ -109,7 +113,7 @@ export async function searchOpenLibrary(
   url.searchParams.set("q", q);
   url.searchParams.set(
     "fields",
-    "key,title,author_name,cover_i,first_publish_year,first_sentence,subject",
+    "key,title,author_name,cover_i,first_publish_year,first_sentence,subject,number_of_pages_median",
   );
   url.searchParams.set("limit", String(SEARCH_PAGE_SIZE));
   url.searchParams.set("offset", String((safePage - 1) * SEARCH_PAGE_SIZE));
@@ -154,7 +158,7 @@ export async function searchOpenLibraryBySubject(subject: string, limit = 8): Pr
   url.searchParams.set("q", `subject:"${trimmed}"`);
   url.searchParams.set(
     "fields",
-    "key,title,author_name,cover_i,first_publish_year,first_sentence,subject",
+    "key,title,author_name,cover_i,first_publish_year,first_sentence,subject,number_of_pages_median",
   );
   url.searchParams.set("limit", String(limit));
 

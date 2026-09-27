@@ -2,16 +2,19 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/AppShell";
 import { LogoutButton } from "@/components/LogoutButton";
+import { BadgeSection } from "@/components/BadgeSection";
 import { ProfileStats } from "@/components/ProfileStats";
+import { listUnlockedBadges } from "@/lib/unlock-badges";
 
 export default async function ProfilePage() {
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  const [readCount, followerCount, followingCount] = await Promise.all([
+  const [readCount, followerCount, followingCount, badges] = await Promise.all([
     prisma.libraryEntry.count({ where: { userId: session.user.id, status: "READ" } }),
     prisma.follow.count({ where: { followingId: session.user.id } }),
     prisma.follow.count({ where: { followerId: session.user.id } }),
+    listUnlockedBadges(session.user.id),
   ]);
 
   const name = session.user.name || "Reader";
@@ -32,6 +35,7 @@ export default async function ProfilePage() {
         followingCount={followingCount}
         readCount={readCount}
       />
+      <BadgeSection badges={badges} />
       <div className="mt-8 mb-2">
         <LogoutButton />
       </div>

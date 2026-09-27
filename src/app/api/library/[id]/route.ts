@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { STATUSES } from "@/lib/status";
 import { isValidRating } from "@/lib/rating";
+import { unlockEarnedBadges } from "@/lib/unlock-badges";
 
 const STATUSES_SET = new Set<ReadingStatus>(STATUSES);
 
@@ -57,6 +58,8 @@ export async function PATCH(request: Request, context: RouteContext) {
       data,
       include: { book: true },
     });
+
+    await unlockEarnedBadges(session.user.id);
 
     return NextResponse.json({ entry });
   } catch (error) {
