@@ -152,7 +152,7 @@ body {
   }
   100% {
     opacity: 0;
-    transform: translate3d(var(--x), 78px, 0) rotate(var(--spin)) scale(1);
+    transform: translate3d(var(--x), 88px, 0) rotate(var(--spin)) scale(1);
   }
 }
 
