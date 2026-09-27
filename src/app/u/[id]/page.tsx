@@ -58,35 +58,43 @@ export default async function PublicProfilePage({
 
   return (
     <AppShell>
-      <div className="flex flex-col items-center pt-4 text-center">
-        <Avatar name={name} size="lg" />
-        <h1 className="mt-4 font-sans text-3xl font-medium">{name}</h1>
-        <p className="font-sans text-sm text-warm-gray">{user.email}</p>
-        {!own ? (
-          <div className="mt-4">
-            <FollowButton userId={id} initialFollowing={!!follow} />
-          </div>
+      <div className="lg:grid lg:grid-cols-[17.5rem_minmax(0,1fr)] lg:items-start lg:gap-x-12 xl:grid-cols-[20rem_minmax(0,1fr)] xl:gap-x-16">
+        <div className="flex flex-col items-center pt-4 text-center lg:col-start-1 lg:row-start-1 lg:items-start lg:pt-2 lg:text-left">
+          <Avatar name={name} size="lg" />
+          <h1 className="mt-4 font-sans text-3xl font-medium">{name}</h1>
+          <p className="font-sans text-sm text-warm-gray">{user.email}</p>
+          {!own ? (
+            <div className="mt-4">
+              <FollowButton userId={id} initialFollowing={!!follow} />
+            </div>
+          ) : (
+            <p className="mt-3 text-xs text-warm-gray">This is you</p>
+          )}
+        </div>
+        <div className="lg:col-start-1 lg:row-start-2">
+          <ProfileStats
+            userId={id}
+            followerCount={followerCount}
+            followingCount={followingCount}
+            readCount={readCount}
+          />
+        </div>
+        <div className="lg:col-start-1 lg:row-start-3">
+          <BadgeCollection badges={badges} />
+        </div>
+        <h2 className="mt-8 text-base font-medium lg:col-start-2 lg:row-start-1 lg:mt-2">Reading activity</h2>
+        {entries.length === 0 ? (
+          <p className="pt-8 text-center text-sm text-warm-gray lg:col-start-2 lg:row-start-2 lg:max-w-2xl lg:pt-4 lg:text-left">
+            No activity yet.
+          </p>
         ) : (
-          <p className="mt-3 text-xs text-warm-gray">This is you</p>
+          <div className="lg:col-start-2 lg:row-start-2 lg:row-span-4 lg:max-w-2xl">
+            {entries.map((entry) => (
+              <ActivityCard key={entry.id} item={serializeActivity(entry, session.user.id)} />
+            ))}
+          </div>
         )}
       </div>
-      <ProfileStats
-        userId={id}
-        followerCount={followerCount}
-        followingCount={followingCount}
-        readCount={readCount}
-      />
-      <BadgeCollection badges={badges} />
-      <h2 className="mt-8 text-base font-medium">Reading activity</h2>
-      {entries.length === 0 ? (
-        <p className="pt-8 text-center text-sm text-warm-gray">No activity yet.</p>
-      ) : (
-        <div>
-          {entries.map((entry) => (
-            <ActivityCard key={entry.id} item={serializeActivity(entry, session.user.id)} />
-          ))}
-        </div>
-      )}
     </AppShell>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import Link from "next/link";
+import { authCardClass } from "@/components/AuthFrame";
 import { googleAuthAction, loginAction, registerAction } from "@/lib/actions";
 import { IconLogo } from "@/components/Icons";
 
@@ -18,7 +19,7 @@ export function AuthForm({
   const [state, formAction, pending] = useActionState(action, undefined);
 
   return (
-    <div className="mx-auto w-full max-w-[430px] space-y-4 px-6 py-10">
+    <div className={authCardClass}>
     <form action={formAction} className="space-y-4">
       <div className="mb-4 flex flex-col items-center text-center">
         <IconLogo className="h-12 w-12 text-espresso" />

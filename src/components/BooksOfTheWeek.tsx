@@ -30,7 +30,7 @@ export function BooksOfTheWeek({ books }: { books: OpenLibraryBook[] }) {
   }
 
   return (
-    <section className="mt-10">
+    <section className="mt-10 lg:mx-auto lg:max-w-md xl:mx-0 xl:mt-8">
       <div className="text-center">
         <p className="font-sans text-[10px] font-medium tracking-[0.28em] text-terracotta uppercase">This week</p>
         <h2 className="mt-1 font-sans text-[26px] leading-tight text-espresso">Books of the Week</h2>

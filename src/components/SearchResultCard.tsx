@@ -79,7 +79,7 @@ export function SearchResultCard({
       <button
         type="button"
         onClick={() => setStep("detail")}
-        className="flex w-full items-center gap-3 py-3 text-left"
+        className="flex w-full items-center gap-3 py-3 text-left xl:border-b xl:border-beige xl:transition-colors xl:hover:bg-cream/70"
       >
         <BookCover coverId={book.coverId} title={book.title} size="XS" priority={priority} />
         <span className="min-w-0 flex-1">
@@ -97,8 +97,8 @@ export function SearchResultCard({
       </button>
 
       {step !== "closed" ? (
-        <div className="fixed inset-0 z-40 flex items-end justify-center bg-espresso/35">
-          <div className="max-h-[92vh] w-full max-w-[430px] overflow-y-auto rounded-t-3xl bg-ivory px-5 pb-8 pt-4">
+        <div className="fixed inset-0 z-40 flex items-end justify-center bg-espresso/35 lg:items-center lg:p-6">
+          <div className="max-h-[92vh] w-full max-w-[430px] overflow-y-auto rounded-t-3xl bg-ivory px-5 pb-8 pt-4 lg:max-h-[min(85vh,760px)] lg:max-w-lg lg:rounded-3xl lg:shadow-[0_24px_80px_rgba(45,33,27,0.18)]">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-serif text-2xl text-espresso">
                 {step === "add" ? "Add to library" : book.title}

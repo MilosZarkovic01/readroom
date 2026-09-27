@@ -60,10 +60,10 @@ export default async function SearchPage({
 
   return (
     <AppShell topBar={false}>
-      <div className="flex items-center gap-3 pt-5">
+      <div className="flex items-center gap-3 pt-5 lg:pt-6">
         <Link
           href="/"
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-cream text-espresso"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-cream text-espresso lg:hidden"
           aria-label="Back"
         >
           <IconBack className="h-5 w-5" />
@@ -95,16 +95,17 @@ export default async function SearchPage({
         <p className="mt-10 text-center text-sm text-warm-gray">No books found for “{q}”.</p>
       ) : (
         <>
-          <div className="divide-y divide-beige">
+          <div className="divide-y divide-beige xl:grid xl:grid-cols-2 xl:gap-x-8 xl:divide-y-0">
             {books.map((book, index) => (
-              <SearchResultCard
-                key={book.openLibraryKey}
-                priority={index < 2}
-                book={{
-                  ...book,
-                  libraryStatus: ownedByKey.get(book.openLibraryKey) ?? null,
-                }}
-              />
+              <div key={book.openLibraryKey} className="xl:min-w-0">
+                <SearchResultCard
+                  priority={index < 2}
+                  book={{
+                    ...book,
+                    libraryStatus: ownedByKey.get(book.openLibraryKey) ?? null,
+                  }}
+                />
+              </div>
             ))}
           </div>
           {totalPages > 1 ? (

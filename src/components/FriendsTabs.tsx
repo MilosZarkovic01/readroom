@@ -19,8 +19,8 @@ export function FriendsTabs({
   const [tab, setTab] = useState<"activity" | "people">(query ? "people" : "activity");
 
   return (
-    <div className="font-sans">
-      <div className="flex gap-6 border-b border-beige font-sans">
+    <div className="font-sans xl:grid xl:grid-cols-[minmax(0,40rem)_20rem] xl:items-start xl:gap-x-12">
+      <div className="flex gap-6 border-b border-beige font-sans xl:hidden">
         {(
           [
             ["activity", "Activity"],
@@ -39,9 +39,9 @@ export function FriendsTabs({
           </button>
         ))}
       </div>
-      {tab === "activity" ? (
-        feed.length === 0 ? (
-          <p className="pt-10 text-center font-sans text-sm text-warm-gray">
+      <div className={tab === "activity" ? undefined : "hidden xl:block"}>
+        {feed.length === 0 ? (
+          <p className="pt-10 text-center font-sans text-sm text-warm-gray xl:pt-2 xl:text-left">
             Follow readers, or keep an eye on comments and replies on your own posts.
           </p>
         ) : (
@@ -50,30 +50,30 @@ export function FriendsTabs({
               <ActivityCard key={item.id} item={item} highlight={item.id === highlightId} />
             ))}
           </div>
-        )
-      ) : (
-        <div>
-          <form action="/friends" method="get" className="mt-4">
-            <input
-              name="q"
-              defaultValue={query}
-              placeholder="Find readers by name or email"
-              className="w-full rounded-full border border-beige bg-cream px-4 py-2.5 font-sans text-sm outline-none"
-            />
-          </form>
-          {people.length === 0 ? (
-            <p className="pt-10 text-center font-sans text-sm text-warm-gray">
-              {query ? "No readers match that search." : "No people to recommend yet."}
-            </p>
-          ) : (
-            <div className="mt-2 divide-y divide-beige">
-              {people.map((person) => (
-                <PeopleRow key={person.id} user={person} following={person.following} />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
+      <div className={`${tab === "people" ? "" : "hidden xl:block"} xl:sticky xl:top-6`}>
+        <h2 className="mb-3 hidden text-base font-medium text-espresso xl:block">People</h2>
+        <form action="/friends" method="get" className="mt-4 xl:mt-0">
+          <input
+            name="q"
+            defaultValue={query}
+            placeholder="Find readers by name or email"
+            className="w-full rounded-full border border-beige bg-cream px-4 py-2.5 font-sans text-sm outline-none"
+          />
+        </form>
+        {people.length === 0 ? (
+          <p className="pt-10 text-center font-sans text-sm text-warm-gray xl:pt-6 xl:text-left">
+            {query ? "No readers match that search." : "No people to recommend yet."}
+          </p>
+        ) : (
+          <div className="mt-2 divide-y divide-beige">
+            {people.map((person) => (
+              <PeopleRow key={person.id} user={person} following={person.following} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

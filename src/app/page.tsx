@@ -21,8 +21,8 @@ export default async function HomePage() {
   const session = await auth();
   if (!session?.user?.id) {
     return (
-      <div className="mx-auto flex min-h-full max-w-[430px] flex-col bg-cream">
-        <div className="relative min-h-[58vh] flex-1 overflow-hidden">
+      <div className="mx-auto flex min-h-full max-w-[430px] flex-col bg-cream lg:max-w-none lg:min-h-screen lg:flex-row">
+        <div className="relative min-h-[58vh] flex-1 overflow-hidden lg:min-h-screen">
           <Image
             src={landingBooks}
             alt="A stack of books and a coffee mug on a sunlit table"
@@ -30,28 +30,30 @@ export default async function HomePage() {
             priority
             placeholder="blur"
             quality={70}
-            sizes="430px"
+            sizes="(min-width: 1024px) 70vw, 430px"
             className="object-cover object-center"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-espresso/55 via-espresso/15 to-transparent" />
-          <div className="absolute inset-x-0 bottom-8 px-8 text-center text-ivory">
-            <h1 className="font-serif text-5xl drop-shadow-sm">ReadRoom</h1>
-            <p className="mt-2 text-sm text-ivory/90">Better books. Bigger conversations.</p>
+          <div className="absolute inset-x-0 bottom-8 px-8 text-center text-ivory lg:bottom-16 lg:left-0 lg:max-w-xl lg:px-16 lg:text-left lg:right-auto">
+            <h1 className="font-serif text-5xl drop-shadow-sm lg:text-7xl">ReadRoom</h1>
+            <p className="mt-2 text-sm text-ivory/90 lg:mt-3 lg:text-lg">Better books. Bigger conversations.</p>
           </div>
         </div>
-        <div className="rounded-t-[2rem] bg-cream px-6 pt-8 pb-10">
-          <Link
-            href="/register"
-            className="block w-full rounded-full bg-deep-brown py-3.5 text-center font-medium text-ivory"
-          >
-            Create account
-          </Link>
-          <Link
-            href="/login"
-            className="mt-3 block w-full rounded-full border border-beige bg-ivory py-3.5 text-center font-medium text-espresso"
-          >
-            Log in
-          </Link>
+        <div className="rounded-t-[2rem] bg-cream px-6 pt-8 pb-10 lg:flex lg:w-[420px] lg:shrink-0 lg:flex-col lg:justify-center lg:rounded-none lg:px-12 lg:py-16 xl:w-[480px]">
+          <div className="lg:mx-auto lg:w-full lg:max-w-sm">
+            <Link
+              href="/register"
+              className="block w-full rounded-full bg-deep-brown py-3.5 text-center font-medium text-ivory"
+            >
+              Create account
+            </Link>
+            <Link
+              href="/login"
+              className="mt-3 block w-full rounded-full border border-beige bg-ivory py-3.5 text-center font-medium text-espresso"
+            >
+              Log in
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -76,7 +78,7 @@ export default async function HomePage() {
       <p className="font-serif text-[32px] leading-tight text-espresso">
         Good {greetingWord()}, {firstName(session.user.name, session.user.email)}
       </p>
-      <div className="mt-5">
+      <div className="mt-5 lg:max-w-xl">
         <SearchBar />
       </div>
       <div className="mt-8 flex items-center justify-between">
@@ -85,37 +87,47 @@ export default async function HomePage() {
           See all
         </Link>
       </div>
-      <div className="mt-3 space-y-2">
+      <div className="mt-3 space-y-2 lg:grid lg:grid-cols-3 lg:gap-3 lg:space-y-0">
         {STATUSES.map((status) => (
           <Link key={status} href={`/library?shelf=${status}`} className="block">
             <StatusChip status={status} count={counts[status]} />
           </Link>
         ))}
       </div>
-      {continueReading.length > 0 ? (
-        <>
-          <div className="mt-8 flex items-center justify-between">
-            <h2 className="text-base font-medium">Continue reading</h2>
-            <Link href="/library?shelf=READING" className="text-sm text-warm-gray">
-              See all
-            </Link>
-          </div>
-          <ul className="mt-2 divide-y divide-beige">
-            {continueReading.map((entry) => (
-              <li key={entry.id}>
-                <Link href="/library?shelf=READING" className="flex items-center gap-3 py-3">
-                  <BookCover coverId={entry.book.coverId} title={entry.book.title} size="XS" />
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{entry.book.title}</p>
-                    <p className="truncate text-sm text-warm-gray">{entry.book.author}</p>
-                  </div>
+      {continueReading.length > 0 || booksOfTheWeek.length > 0 ? (
+        <div
+          className={
+            continueReading.length > 0 && booksOfTheWeek.length > 0
+              ? "xl:grid xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start xl:gap-x-12"
+              : undefined
+          }
+        >
+          {continueReading.length > 0 ? (
+            <div>
+              <div className="mt-8 flex items-center justify-between">
+                <h2 className="text-base font-medium">Continue reading</h2>
+                <Link href="/library?shelf=READING" className="text-sm text-warm-gray">
+                  See all
                 </Link>
-              </li>
-            ))}
-          </ul>
-        </>
+              </div>
+              <ul className="mt-2 divide-y divide-beige">
+                {continueReading.map((entry) => (
+                  <li key={entry.id}>
+                    <Link href="/library?shelf=READING" className="flex items-center gap-3 py-3">
+                      <BookCover coverId={entry.book.coverId} title={entry.book.title} size="XS" />
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{entry.book.title}</p>
+                        <p className="truncate text-sm text-warm-gray">{entry.book.author}</p>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {booksOfTheWeek.length ? <BooksOfTheWeek books={booksOfTheWeek} /> : null}
+        </div>
       ) : null}
-      {booksOfTheWeek.length ? <BooksOfTheWeek books={booksOfTheWeek} /> : null}
     </AppShell>
   );
 }

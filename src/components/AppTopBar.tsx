@@ -14,8 +14,8 @@ export async function AppTopBar() {
     : 0;
 
   return (
-    <header className="relative z-30 flex items-center justify-between px-5 pt-5 pb-2 font-sans">
-      <Link href="/" className="flex items-center gap-2 text-espresso">
+    <header className="relative z-30 flex items-center justify-between px-5 pt-5 pb-2 font-sans lg:justify-end lg:px-8 lg:pt-6 lg:pb-1 xl:px-10">
+      <Link href="/" className="flex items-center gap-2 text-espresso lg:hidden">
         <IconLogo className="h-8 w-8" />
         <span className="font-serif text-[28px] leading-none tracking-tight">ReadRoom</span>
       </Link>

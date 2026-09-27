@@ -14,7 +14,7 @@ export function PeopleRow({
 }) {
   const name = displayName(user);
   return (
-    <div className="flex items-center gap-3 py-3 font-sans">
+    <div className="flex items-center gap-3 py-3 font-sans xl:border-b xl:border-beige">
       <Link href={`/u/${user.id}`} className="flex min-w-0 flex-1 items-center gap-3">
         <Avatar name={name} size="sm" />
         <span className="min-w-0">
