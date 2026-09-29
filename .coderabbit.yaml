@@ -1,0 +1,46 @@
+# CodeRabbit reviews non-draft pull requests into master.
+# Install the GitHub app once: https://github.com/apps/coderabbitai
+language: en-US
+early_access: false
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+    base_branches:
+      - master
+    ignore_title_keywords:
+      - "[skip review]"
+  path_filters:
+    - "!**/node_modules/**"
+    - "!**/.next/**"
+    - "!**/dist/**"
+    - "!package-lock.json"
+    - "!pnpm-lock.yaml"
+    - "!bun.lock"
+  path_instructions:
+    - path: "src/**/*.{ts,tsx}"
+      instructions: |
+        This is a Next.js App Router app. Do not suggest the Pages Router, getServerSideProps, or next/router.
+        params and searchParams are async. Auth gating lives in src/proxy.ts.
+        Keep the cream, ivory, and deep-brown palette when the change touches UI.
+    - path: "prisma/**"
+      instructions: |
+        Local development uses SQLite in prisma/schema.prisma. Production uses Neon Postgres in prisma/prod/schema.prisma.
+        A schema change needs the same update in both places, including migrations.
+    - path: ".github/**"
+      instructions: |
+        Production deploys only from the manual Deploy PRD workflow on master.
+        Do not make production deploy run on pull requests or feature branches.
+    - path: "mobile/**"
+      instructions: |
+        The mobile app is Expo with Expo Router under mobile/src/app.
+        Do not add or edit generated ios/ or android/ projects.
+chat:
+  auto_reply: true

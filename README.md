@@ -30,8 +30,11 @@ GitHub Actions runs **Test → Build → Deploy PRD**.
 - Test runs lint, typecheck, unit tests, Prisma schema checks, and Playwright smoke tests.
 - Build compiles the app only after Test passes.
 - **Deploy PRD** is a separate workflow. It never runs on pull requests, feature branches, or automatic pushes to `master`. After Test and Build are green on `master`, open **Actions → Deploy PRD → Run workflow** and select the `master` branch. That run executes Test → Build → Deploy PRD.
+- CodeRabbit reviews every non-draft pull request into `master`. Install the [CodeRabbit GitHub app](https://github.com/apps/coderabbitai) on this repository once. `.coderabbit.yaml` keeps those reviews on, including a follow-up review for each new push. Comment `@coderabbitai review` on a pull request to run it again.
 
-Required GitHub secret for production deploys: `VERCEL_TOKEN` from https://vercel.com/account/tokens. A token scoped to the `readroom` project is enough. Add it under Settings → Secrets and variables → Actions, or on the Production environment. Deploy PRD calls the Vercel Deployments API (the CLI cannot use a project-scoped token). Review-email secrets: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`.
+Required GitHub secret for production deploys: `VERCEL_TOKEN` from https://vercel.com/account/tokens. A token scoped to the `readroom` project is enough. Add it under Settings → Secrets and variables → Actions, or on the Production environment. Deploy PRD calls the Vercel Deployments API (the CLI cannot use a project-scoped token).
+
+Review-email secrets: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`, and `MERGE_LINK_SECRET`. The email waits up to three minutes for the Vercel preview, then sends a note with the preview link when it is ready. The merge button is included when `MERGE_LINK_SECRET` is set. It opens a confirmation page on https://readroom-gamma.vercel.app. The pull request is merged only after that confirmation, and only when CI has passed. Set the same `MERGE_LINK_SECRET` on the Vercel Production environment, plus `GITHUB_MERGE_TOKEN`: a fine-grained GitHub token for this repository with Contents and Pull requests set to Read and write. Keep `GITHUB_MERGE_TOKEN` off Preview. The link expires after 7 days. Opening the email does not merge the pull request.
 
 ## Production (Vercel + Neon)
 
