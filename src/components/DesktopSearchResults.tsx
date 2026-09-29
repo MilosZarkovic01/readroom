@@ -82,7 +82,9 @@ export function DesktopSearchResults({
         <p className="mt-10 text-center text-sm text-warm-gray">Loading books…</p>
       ) : null}
       {books && books.length === 0 && !error ? (
-        <p className="mt-10 text-center text-sm text-warm-gray">No books found for “{q}”.</p>
+        <p className="mt-10 text-center text-sm text-warm-gray">
+          No books found for “{q}”. Try another title or author.
+        </p>
       ) : null}
       {books && books.length > 0 ? (
         <>

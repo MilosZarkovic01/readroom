@@ -93,7 +93,9 @@ export default async function SearchPage({
       {!q ? (
         <p className="mt-10 text-center text-sm text-warm-gray">Start with a title or an author’s name.</p>
       ) : books.length === 0 && !error ? (
-        <p className="mt-10 text-center text-sm text-warm-gray lg:hidden">No books found for “{q}”.</p>
+        <p className="mt-10 text-center text-sm text-warm-gray lg:hidden">
+          No books found for “{q}”. Try another title or author.
+        </p>
       ) : (
         <div className="lg:hidden">
           <div className="divide-y divide-beige">
