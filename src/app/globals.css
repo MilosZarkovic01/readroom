@@ -97,19 +97,64 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   pointer-events: none;
 }
 
-@keyframes goal-card-in {
+@keyframes goal-backdrop {
   from {
     opacity: 0;
-    transform: translateY(28px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+  }
+}
+
+.goal-backdrop {
+  animation: goal-backdrop 0.28s ease both;
+}
+
+@keyframes goal-card-in {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.94);
+  }
+  62% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.015);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
 .goal-card-in {
-  animation: goal-card-in 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: goal-card-in 0.58s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.goal-mark-ring,
+.goal-mark-check {
+  fill: none;
+  stroke: var(--sage);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.goal-mark-ring {
+  stroke-width: 1.75;
+  stroke-dasharray: 126;
+  stroke-dashoffset: 126;
+  animation: goal-draw 0.45s ease 0.32s forwards;
+}
+
+.goal-mark-check {
+  stroke-width: 2.4;
+  stroke-dasharray: 36;
+  stroke-dashoffset: 36;
+  animation: goal-draw 0.38s cubic-bezier(0.22, 1, 0.36, 1) 0.62s forwards;
+}
+
+@keyframes goal-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 @keyframes goal-fill {
@@ -123,7 +168,40 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .goal-fill {
   transform-origin: left center;
-  animation: goal-fill 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+  transform: scaleX(0);
+  animation: goal-fill 0.72s cubic-bezier(0.22, 1, 0.36, 1) 0.92s both;
+}
+
+@keyframes goal-line {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.goal-line {
+  opacity: 0;
+  animation: goal-line 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.goal-line-1 {
+  animation-delay: 0.46s;
+}
+
+.goal-line-2 {
+  animation-delay: 0.6s;
+}
+
+.goal-line-3 {
+  animation-delay: 0.76s;
+}
+
+.goal-line-4 {
+  animation-delay: 1.15s;
 }
 
 @keyframes badge-in {
@@ -230,13 +308,27 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .badge-unlock-glow,
   .badge-confetti-piece,
   .item-leave,
+  .goal-backdrop,
   .goal-card-in,
-  .goal-fill {
+  .goal-mark-ring,
+  .goal-mark-check,
+  .goal-fill,
+  .goal-line {
     animation: none;
   }
 
   .goal-fill {
     transform: none;
+  }
+
+  .goal-line {
+    opacity: 1;
+    transform: none;
+  }
+
+  .goal-mark-ring,
+  .goal-mark-check {
+    stroke-dashoffset: 0;
   }
 
   .badge-confetti {
