@@ -7,6 +7,10 @@ import { isValidRating } from "@/lib/rating";
 import { parsePageCount } from "@/lib/badges";
 import { pickSubjects, serializeSubjects } from "@/lib/subjects";
 import { unlockEarnedBadges } from "@/lib/unlock-badges";
+import { finishedAtFor, goalsToCelebrate } from "@/lib/goals";
+import { listGoalsWithProgress } from "@/lib/reading-goals";
+import { saveReadingProgress } from "@/lib/reading-progress";
+import { entryPageCount } from "@/lib/progress";
 
 const STATUSES_SET = new Set<ReadingStatus>(STATUSES);
 
@@ -84,28 +88,45 @@ export async function POST(request: Request) {
       },
     });
 
+    const where = { userId_bookId: { userId: session.user.id, bookId: book.id } };
+    const previous = await prisma.libraryEntry.findUnique({
+      where,
+      select: { status: true, finishedAt: true },
+    });
+    const finishedAt = finishedAtFor(previous, status);
+    const before =
+      status === "READ" ? await listGoalsWithProgress(session.user.id, { persist: false }) : null;
+
     const entry = await prisma.libraryEntry.upsert({
-      where: {
-        userId_bookId: { userId: session.user.id, bookId: book.id },
-      },
+      where,
       create: {
         userId: session.user.id,
         bookId: book.id,
         status,
         rating: rating ?? null,
         review: review ?? null,
+        finishedAt,
       },
       update: {
         status,
+        finishedAt,
         ...(rating !== undefined ? { rating } : {}),
         ...(review !== undefined ? { review } : {}),
       },
       include: { book: true },
     });
 
-    const unlocked = await unlockEarnedBadges(session.user.id);
+    const entryPages = entryPageCount(entry);
+    if (status === "READ" && previous?.status !== "READ" && entryPages) {
+      await saveReadingProgress(session.user.id, entry.id, entryPages);
+    }
 
-    return NextResponse.json({ entry, unlocked }, { status: 201 });
+    const unlocked = await unlockEarnedBadges(session.user.id);
+    const after = status === "READ" ? await listGoalsWithProgress(session.user.id) : null;
+    const completedGoals =
+      before && after ? goalsToCelebrate([...before.active, ...before.completed, ...before.ended], after) : [];
+
+    return NextResponse.json({ entry, unlocked, completedGoals }, { status: 201 });
   } catch (error) {
     console.error("Failed to add library book", error);
     return NextResponse.json({ error: "Could not add that book. Try again." }, { status: 500 });

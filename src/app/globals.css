@@ -42,6 +42,25 @@ body {
   font-family: var(--font-inter), system-ui, sans-serif;
 }
 
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  min-width: 0;
+  min-height: 2.75rem;
+  text-align: left;
+  line-height: 1.25rem;
+}
+
+input[type="date"]::-webkit-date-and-time-value {
+  margin: 0;
+  text-align: left;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.55;
+}
+
 .font-serif {
   font-family: var(--font-playfair), Georgia, serif;
 }
@@ -64,6 +83,125 @@ body {
 
 .notify-pop {
   animation: notify-pop 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes item-leave {
+  to {
+    opacity: 0;
+    transform: scale(0.98) translateY(-6px);
+  }
+}
+
+.item-leave {
+  animation: item-leave 0.18s ease forwards;
+  pointer-events: none;
+}
+
+@keyframes goal-backdrop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.goal-backdrop {
+  animation: goal-backdrop 0.28s ease both;
+}
+
+@keyframes goal-card-in {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.94);
+  }
+  62% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.015);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.goal-card-in {
+  animation: goal-card-in 0.58s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.goal-mark-ring,
+.goal-mark-check {
+  fill: none;
+  stroke: var(--sage);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.goal-mark-ring {
+  stroke-width: 1.75;
+  stroke-dasharray: 126;
+  stroke-dashoffset: 126;
+  animation: goal-draw 0.45s ease 0.32s forwards;
+}
+
+.goal-mark-check {
+  stroke-width: 2.4;
+  stroke-dasharray: 36;
+  stroke-dashoffset: 36;
+  animation: goal-draw 0.38s cubic-bezier(0.22, 1, 0.36, 1) 0.62s forwards;
+}
+
+@keyframes goal-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes goal-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.goal-fill {
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: goal-fill 0.72s cubic-bezier(0.22, 1, 0.36, 1) 0.92s both;
+}
+
+@keyframes goal-line {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.goal-line {
+  opacity: 0;
+  animation: goal-line 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.goal-line-1 {
+  animation-delay: 0.46s;
+}
+
+.goal-line-2 {
+  animation-delay: 0.6s;
+}
+
+.goal-line-3 {
+  animation-delay: 0.76s;
+}
+
+.goal-line-4 {
+  animation-delay: 1.15s;
 }
 
 @keyframes badge-in {
@@ -168,8 +306,29 @@ body {
   .badge-unlock-in,
   .badge-unlock-mark,
   .badge-unlock-glow,
-  .badge-confetti-piece {
+  .badge-confetti-piece,
+  .item-leave,
+  .goal-backdrop,
+  .goal-card-in,
+  .goal-mark-ring,
+  .goal-mark-check,
+  .goal-fill,
+  .goal-line {
     animation: none;
+  }
+
+  .goal-fill {
+    transform: none;
+  }
+
+  .goal-line {
+    opacity: 1;
+    transform: none;
+  }
+
+  .goal-mark-ring,
+  .goal-mark-check {
+    stroke-dashoffset: 0;
   }
 
   .badge-confetti {

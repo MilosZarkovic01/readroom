@@ -1,3 +1,4 @@
+import { AppToaster } from "@/components/AppToaster";
 import { BottomNav } from "@/components/BottomNav";
 import { AppTopBar } from "@/components/AppTopBar";
 
@@ -15,6 +16,7 @@ export function AppShell({
         <div className="flex-1 px-5 pb-28 lg:px-8 lg:pb-12 xl:px-10">{children}</div>
       </div>
       <BottomNav />
+      <AppToaster />
     </div>
   );
 }

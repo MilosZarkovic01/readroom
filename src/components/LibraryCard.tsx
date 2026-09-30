@@ -8,10 +8,15 @@ import { BookCover } from "@/components/BookCover";
 import { IconChevron, IconClose } from "@/components/Icons";
 import { ShelfPicker } from "@/components/ShelfPicker";
 import { StarRating } from "@/components/StarRating";
+import { GoalCompleteModal } from "@/components/GoalCompleteModal";
 import { readUnlockedFromApi, type BadgeAward } from "@/lib/badges";
+import { readCompletedGoalsFromApi, type GoalView } from "@/lib/goals";
 import { formatRating } from "@/lib/rating";
 import { STATUSES, STATUS_SHORT } from "@/lib/status";
 import { CategoryChips } from "@/components/CategoryChips";
+import { notify } from "@/components/AppToaster";
+import { EditionPageField, PageProgressBar, PageProgressForm, type ProgressSaveResult } from "@/components/ReadingProgress";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 export type LibraryCardEntry = {
   id: string;
@@ -25,7 +30,9 @@ export type LibraryCardEntry = {
     firstPublishYear: number | null;
     description: string | null;
     subjects: string[];
+    pageCount: number | null;
   };
+  currentPage: number | null;
 };
 
 export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
@@ -36,6 +43,9 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
   const [rating, setRating] = useState<number | null>(entry.rating);
   const [review, setReview] = useState(entry.review ?? "");
   const [unlocked, setUnlocked] = useState<BadgeAward[]>([]);
+  const [completedGoals, setCompletedGoals] = useState<GoalView[]>([]);
+  const [leaving, setLeaving] = useState(false);
+  useBodyScrollLock(open);
 
   async function patch(body: {
     status?: ReadingStatus;
@@ -53,27 +63,56 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
       if (!response.ok) {
         throw new Error(payload?.error ?? "Could not save your review.");
       }
-      const awards = readUnlockedFromApi(payload);
-      if (awards.length) {
-        setOpen(false);
-        setUnlocked(awards);
-      }
-      router.refresh();
+      celebrateThenRefresh(readUnlockedFromApi(payload), readCompletedGoalsFromApi(payload));
+      return true;
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Could not save your review.");
+      notify(error instanceof Error ? error.message : "Could not save your review.");
+      return false;
     } finally {
       setBusy(false);
     }
   }
 
+  function celebrateThenRefresh(awards: BadgeAward[], goals: GoalView[]) {
+    if (awards.length || goals.length) {
+      setOpen(false);
+      setUnlocked(awards);
+      setCompletedGoals(goals);
+      return;
+    }
+    router.refresh();
+  }
+
+  function progressSaved(result: ProgressSaveResult) {
+    setStatus(result.status);
+    if (result.finished) setOpen(false);
+    celebrateThenRefresh(result.unlocked, result.completedGoals);
+  }
+
+  function finishCelebration() {
+    if (unlocked.length) {
+      setUnlocked([]);
+      if (completedGoals.length) return;
+    } else {
+      setCompletedGoals([]);
+    }
+    router.refresh();
+  }
+
   async function remove() {
-    if (!confirm(`Remove “${entry.book.title}” from your library?`)) return;
+    setOpen(false);
+    setLeaving(true);
     setBusy(true);
     try {
-      const response = await fetch(`/api/library/${entry.id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("Remove failed");
-      setOpen(false);
+      const [response] = await Promise.all([
+        fetch(`/api/library/${entry.id}`, { method: "DELETE" }),
+        new Promise((resolve) => window.setTimeout(resolve, 180)),
+      ]);
+      if (!response.ok) throw new Error("Could not remove that book.");
       router.refresh();
+    } catch (error) {
+      setLeaving(false);
+      notify(error instanceof Error ? error.message : "Could not remove that book.");
     } finally {
       setBusy(false);
     }
@@ -84,23 +123,31 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex w-full items-center gap-3 py-3 text-left xl:border-b xl:border-beige xl:transition-colors xl:hover:bg-cream/70"
+        className={`flex w-full items-center gap-3 py-3 text-left xl:border-b xl:border-beige xl:transition-colors xl:hover:bg-cream/70 ${leaving ? "item-leave" : ""}`}
       >
         <BookCover coverId={entry.book.coverId} title={entry.book.title} size="XS" />
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium text-espresso">{entry.book.title}</span>
           <span className="mt-0.5 block truncate text-sm text-warm-gray">{entry.book.author}</span>
-          <span className="mt-1 flex items-center gap-2">
-            <StarRating value={rating} size="sm" />
-            {rating ? <span className="text-xs text-warm-gray">{formatRating(rating)}</span> : null}
-          </span>
+          {entry.status === "READING" ? (
+            <PageProgressBar
+              currentPage={entry.currentPage}
+              pageCount={entry.book.pageCount}
+              className="mt-1.5 max-w-64"
+            />
+          ) : (
+            <span className="mt-1 flex items-center gap-2">
+              <StarRating value={rating} size="sm" />
+              {rating ? <span className="text-xs text-warm-gray">{formatRating(rating)}</span> : null}
+            </span>
+          )}
         </span>
         <IconChevron className="h-5 w-5 shrink-0 text-dusty-peach" />
       </button>
 
       {open ? (
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-espresso/35 lg:items-center lg:p-6">
-          <div className="max-h-[90vh] w-full max-w-[430px] overflow-y-auto rounded-t-3xl bg-ivory px-5 pb-8 pt-4 lg:max-h-[min(85vh,760px)] lg:max-w-lg lg:rounded-3xl lg:shadow-[0_24px_80px_rgba(45,33,27,0.18)]">
+          <div className="max-h-[90dvh] w-full max-w-[430px] overflow-y-auto overscroll-contain rounded-t-3xl bg-ivory px-5 pb-8 pt-4 lg:max-h-[min(85vh,760px)] lg:max-w-lg lg:rounded-3xl lg:shadow-[0_24px_80px_rgba(45,33,27,0.18)]">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-serif text-2xl text-espresso">Edit library</h2>
               <button
@@ -123,13 +170,34 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
             {entry.book.description ? (
               <p className="mb-5 text-sm leading-relaxed text-warm-gray">{entry.book.description}</p>
             ) : null}
+            {status === "READING" ? (
+              <div className="mb-5">
+                <p className="mb-2 text-sm font-medium text-espresso">Reading progress</p>
+                <PageProgressForm
+                  key={entry.book.pageCount ?? "unknown"}
+                  entryId={entry.id}
+                  currentPage={entry.currentPage}
+                  pageCount={entry.book.pageCount}
+                  onSaved={progressSaved}
+                />
+              </div>
+            ) : (
+              <EditionPageField
+                key={entry.book.pageCount ?? "unknown"}
+                entryId={entry.id}
+                pageCount={entry.book.pageCount}
+                onSaved={(completed) => celebrateThenRefresh([], completed)}
+              />
+            )}
             <CategoryChips subjects={entry.book.subjects} />
             <p className="mb-2 text-sm font-medium text-espresso">Status</p>
             <ShelfPicker
               value={status}
               onChange={(next) => {
                 setStatus(next);
-                void patch({ status: next });
+                void patch({ status: next }).then((saved) => {
+                  if (!saved) setStatus(entry.status);
+                });
               }}
             />
             <p className="mt-5 mb-2 text-sm font-medium text-espresso">Rating</p>
@@ -165,7 +233,9 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
         </div>
       ) : null}
       {unlocked.length ? (
-        <BadgeUnlockModal badges={unlocked} onDone={() => setUnlocked([])} />
+        <BadgeUnlockModal badges={unlocked} onDone={finishCelebration} />
+      ) : completedGoals.length ? (
+        <GoalCompleteModal goals={completedGoals} onDone={finishCelebration} />
       ) : null}
     </>
   );

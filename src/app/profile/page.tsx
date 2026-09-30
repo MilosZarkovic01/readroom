@@ -7,16 +7,24 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { ProfileStats } from "@/components/ProfileStats";
 import { serializeActivity } from "@/lib/feed";
 import { listUnlockedBadges } from "@/lib/unlock-badges";
+import { GoalsCard } from "@/components/GoalsCard";
+import { listGoalsWithProgress } from "@/lib/reading-goals";
 
 export default async function ProfilePage() {
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  const [readCount, followerCount, followingCount, badges, entries] = await Promise.all([
+  const [readCount, followerCount, followingCount, badges, goals, shelfEntries, entries] = await Promise.all([
     prisma.libraryEntry.count({ where: { userId: session.user.id, status: "READ" } }),
     prisma.follow.count({ where: { followingId: session.user.id } }),
     prisma.follow.count({ where: { followerId: session.user.id } }),
     listUnlockedBadges(session.user.id),
+    listGoalsWithProgress(session.user.id),
+    prisma.libraryEntry.findMany({
+      where: { userId: session.user.id, status: { in: ["WANT_TO_READ", "READING"] } },
+      select: { book: { select: { id: true, title: true } } },
+      orderBy: { updatedAt: "desc" },
+    }),
     prisma.libraryEntry.findMany({
       where: { userId: session.user.id },
       include: {
@@ -53,8 +61,13 @@ export default async function ProfilePage() {
           />
         </div>
       </div>
-      <div className="w-full">
+      <div className="mt-6 flex w-full flex-col gap-3 lg:mt-8 lg:flex-row">
         <BadgeCollection badges={badges} />
+        <GoalsCard
+          goals={goals}
+          editable
+          shelfBooks={shelfEntries.map((entry) => entry.book)}
+        />
       </div>
       <h2 className="mt-8 text-base font-medium lg:mt-10">Reading activity</h2>
       {entries.length === 0 ? (
