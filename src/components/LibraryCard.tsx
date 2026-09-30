@@ -14,7 +14,7 @@ import { readCompletedGoalsFromApi, type GoalView } from "@/lib/goals";
 import { formatRating } from "@/lib/rating";
 import { STATUSES, STATUS_SHORT } from "@/lib/status";
 import { CategoryChips } from "@/components/CategoryChips";
-import { confirmAction, notify } from "@/components/AppToaster";
+import { notify } from "@/components/AppToaster";
 import { EditionPageField, PageProgressBar, PageProgressForm, type ProgressSaveResult } from "@/components/ReadingProgress";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
@@ -44,6 +44,7 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
   const [review, setReview] = useState(entry.review ?? "");
   const [unlocked, setUnlocked] = useState<BadgeAward[]>([]);
   const [completedGoals, setCompletedGoals] = useState<GoalView[]>([]);
+  const [leaving, setLeaving] = useState(false);
   useBodyScrollLock(open);
 
   async function patch(body: {
@@ -99,15 +100,18 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
   }
 
   async function remove() {
-    const accepted = await confirmAction(`Remove “${entry.book.title}” from your library?`);
-    if (!accepted) return;
+    setOpen(false);
+    setLeaving(true);
     setBusy(true);
     try {
-      const response = await fetch(`/api/library/${entry.id}`, { method: "DELETE" });
+      const [response] = await Promise.all([
+        fetch(`/api/library/${entry.id}`, { method: "DELETE" }),
+        new Promise((resolve) => window.setTimeout(resolve, 180)),
+      ]);
       if (!response.ok) throw new Error("Could not remove that book.");
-      setOpen(false);
       router.refresh();
     } catch (error) {
+      setLeaving(false);
       notify(error instanceof Error ? error.message : "Could not remove that book.");
     } finally {
       setBusy(false);
@@ -119,7 +123,7 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex w-full items-center gap-3 py-3 text-left xl:border-b xl:border-beige xl:transition-colors xl:hover:bg-cream/70"
+        className={`flex w-full items-center gap-3 py-3 text-left xl:border-b xl:border-beige xl:transition-colors xl:hover:bg-cream/70 ${leaving ? "item-leave" : ""}`}
       >
         <BookCover coverId={entry.book.coverId} title={entry.book.title} size="XS" />
         <span className="min-w-0 flex-1">
@@ -189,7 +193,6 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
             <p className="mb-2 text-sm font-medium text-espresso">Status</p>
             <ShelfPicker
               value={status}
-              from={entry.status}
               onChange={(next) => {
                 setStatus(next);
                 void patch({ status: next }).then((saved) => {

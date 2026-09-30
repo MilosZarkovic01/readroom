@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { ReadingStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { isForwardStatusMove, STATUSES } from "@/lib/status";
+import { STATUSES } from "@/lib/status";
 import { isValidRating } from "@/lib/rating";
 import { unlockEarnedBadges } from "@/lib/unlock-badges";
 import { finishedAtFor, goalsToCelebrate } from "@/lib/goals";
@@ -73,13 +73,6 @@ export async function PATCH(request: Request, context: RouteContext) {
   });
   if (!existing) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
-  }
-
-  if (data.status !== undefined && !isForwardStatusMove(existing.status, data.status)) {
-    return NextResponse.json(
-      { error: "Books move from Want to read, to Currently reading, to Read." },
-      { status: 400 },
-    );
   }
 
   if (data.pageCountOverride != null && data.pageCountOverride === existing.book.pageCount) {

@@ -78,6 +78,7 @@ export function goalsToCelebrate(before: GoalView[], after: GoalLists & { newlyC
   const seen = new Set<string>();
   const result: GoalView[] = [];
   for (const goal of after.newlyCompleted) {
+    if (already.has(goal.id) || seen.has(goal.id)) continue;
     seen.add(goal.id);
     result.push(goal);
   }

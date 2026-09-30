@@ -1,6 +1,5 @@
 import { expect, test } from "vitest";
 import { entryPageCount, parsePage, planProgressUpdate, progressPercent } from "../../src/lib/progress";
-import { isForwardStatusMove } from "../../src/lib/status";
 import { periodWindow, previousWindow, safeTimeZone } from "../../src/lib/zoned-time";
 
 test("records pages read when moving forward", () => {
@@ -70,15 +69,6 @@ test("uses a reader's edition page count ahead of the shared catalog count", () 
   expect(entryPageCount({ pageCountOverride: 410, book: { pageCount: 393 } })).toBe(410);
   expect(entryPageCount({ pageCountOverride: null, book: { pageCount: 393 } })).toBe(393);
   expect(entryPageCount({ pageCountOverride: 320, book: { pageCount: null } })).toBe(320);
-});
-
-test("only allows the next reading status", () => {
-  expect(isForwardStatusMove("WANT_TO_READ", "READING")).toBe(true);
-  expect(isForwardStatusMove("READING", "READ")).toBe(true);
-  expect(isForwardStatusMove("READING", "WANT_TO_READ")).toBe(false);
-  expect(isForwardStatusMove("READ", "READING")).toBe(false);
-  expect(isForwardStatusMove("WANT_TO_READ", "READ")).toBe(false);
-  expect(isForwardStatusMove("READING", "READING")).toBe(true);
 });
 
 test("falls back to UTC for unknown time zones", () => {

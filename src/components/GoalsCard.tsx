@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { confirmAction, notify } from "@/components/AppToaster";
+import { notify } from "@/components/AppToaster";
 import { GoalCompleteModal } from "@/components/GoalCompleteModal";
 import {
   IconBookMark,
@@ -152,29 +152,49 @@ function progressCount(goal: GoalView) {
 function GoalRow({
   goal,
   onDelete,
+  onEdit,
+  leaving,
   busy,
 }: {
   goal: GoalView;
   onDelete?: (goal: GoalView) => void;
+  onEdit?: (goal: GoalView) => void;
+  leaving?: boolean;
   busy?: boolean;
 }) {
   const muted = goal.progress.expired;
   const streak = streakLabel(goal.period, goal.progress.streak);
   const complete = goal.progress.done || goal.progress.metThisPeriod;
+  const identity = (
+    <>
+      <span
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
+          complete ? "bg-sage/15 text-walnut" : "bg-dusty-peach/35 text-deep-brown"
+        }`}
+      >
+        <GoalTypeIcon type={goal.type} className="h-5 w-5" />
+      </span>
+      <span className="min-w-0 flex-1 text-left">
+        <span className={`block font-medium ${muted ? "text-warm-gray" : "text-espresso"}`}>{goalTitle(goal)}</span>
+        <span className="mt-0.5 block text-xs text-walnut">{timeframeLabel(goal)}</span>
+      </span>
+    </>
+  );
   return (
-    <li className="rounded-2xl border border-beige bg-cream/70 px-3 py-3">
+    <li className={`rounded-2xl border border-beige bg-cream/70 px-3 py-3 ${leaving ? "item-leave" : ""}`}>
       <div className="flex items-start gap-3">
-        <span
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-            complete ? "bg-sage/15 text-walnut" : "bg-dusty-peach/35 text-deep-brown"
-          }`}
-        >
-          <GoalTypeIcon type={goal.type} className="h-5 w-5" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className={`font-medium ${muted ? "text-warm-gray" : "text-espresso"}`}>{goalTitle(goal)}</p>
-          <p className="mt-0.5 text-xs text-walnut">{timeframeLabel(goal)}</p>
-        </div>
+        {onEdit ? (
+          <button
+            type="button"
+            onClick={() => onEdit(goal)}
+            aria-label={`Edit goal: ${goalTitle(goal)}`}
+            className="flex min-w-0 flex-1 items-start gap-3 text-left"
+          >
+            {identity}
+          </button>
+        ) : (
+          <div className="flex min-w-0 flex-1 items-start gap-3">{identity}</div>
+        )}
         {streak && !muted ? (
           <span className="mt-0.5 shrink-0 rounded-full bg-dusty-peach/35 px-2 py-0.5 text-[11px] font-medium text-deep-brown">
             {streak}
@@ -205,18 +225,24 @@ function GoalRow({
 
 function AddGoalForm({
   shelfBooks,
+  goal,
   onCreated,
 }: {
   shelfBooks: GoalShelfBook[];
+  goal?: GoalView;
   onCreated: (completed: GoalView[]) => void;
 }) {
-  const [type, setType] = useState<GoalType>("PAGE_COUNT");
-  const [period, setPeriod] = useState<GoalPeriod>("DAILY");
-  const [target, setTarget] = useState(DEFAULT_TARGETS.PAGE_COUNT.DAILY);
-  const [bookId, setBookId] = useState(shelfBooks[0]?.id ?? "");
-  const [timeframe, setTimeframe] = useState<Timeframe>("open");
-  const [customStart, setCustomStart] = useState(() => toDateInput(new Date()));
-  const [customEnd, setCustomEnd] = useState("");
+  const [type, setType] = useState<GoalType>(goal?.type ?? "PAGE_COUNT");
+  const [period, setPeriod] = useState<GoalPeriod>(goal?.period ?? "DAILY");
+  const [target, setTarget] = useState(
+    goal?.target ? String(goal.target) : DEFAULT_TARGETS.PAGE_COUNT.DAILY,
+  );
+  const [bookId, setBookId] = useState(goal?.bookId ?? shelfBooks[0]?.id ?? "");
+  const [timeframe, setTimeframe] = useState<Timeframe>(goal ? "custom" : "open");
+  const [customStart, setCustomStart] = useState(() =>
+    toDateInput(goal ? new Date(goal.startsAt) : new Date()),
+  );
+  const [customEnd, setCustomEnd] = useState(() => (goal?.endsAt ? toDateInput(new Date(goal.endsAt)) : ""));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -229,8 +255,8 @@ function AddGoalForm({
 
   function choosePeriod(next: GoalPeriod) {
     setPeriod(next);
-    if (type !== "BOOK") setTarget(DEFAULT_TARGETS[type][next]);
-    setTimeframe(next === "TOTAL" ? "year" : "open");
+    if (!goal && type !== "BOOK") setTarget(DEFAULT_TARGETS[type][next]);
+    if (!goal) setTimeframe(next === "TOTAL" ? "year" : "open");
   }
 
   async function submit(event: FormEvent) {
@@ -239,8 +265,8 @@ function AddGoalForm({
     setBusy(true);
     const { startsAt, endsAt } = timeframeRange(timeframe, customStart, customEnd);
     try {
-      const response = await fetch("/api/goals", {
-        method: "POST",
+      const response = await fetch(goal ? `/api/goals/${goal.id}` : "/api/goals", {
+        method: goal ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type,
@@ -393,7 +419,7 @@ function AddGoalForm({
         disabled={busy || (type === "BOOK" && shelfBooks.length === 0)}
         className="w-full rounded-full bg-deep-brown py-3 text-sm font-medium text-ivory disabled:opacity-50"
       >
-        {busy ? "Saving..." : "Set goal"}
+        {busy ? "Saving..." : goal ? "Save changes" : "Set goal"}
       </button>
     </form>
   );
@@ -419,6 +445,8 @@ export function GoalsCard({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<GoalView | null>(null);
+  const [leavingId, setLeavingId] = useState<string | null>(null);
   const [celebrating, setCelebrating] = useState<GoalView[]>([]);
   const [busy, setBusy] = useState(false);
   useBodyScrollLock(open);
@@ -426,16 +454,27 @@ export function GoalsCard({
   const canAdd = editable && goals.active.length < MAX_ACTIVE_GOALS;
   const bookGoalIds = new Set(goals.active.flatMap((goal) => (goal.bookId ? [goal.bookId] : [])));
   const availableBooks = shelfBooks.filter((book) => !bookGoalIds.has(book.id));
+  const formBooks = editing
+    ? [
+        ...(editing.bookId && !shelfBooks.some((book) => book.id === editing.bookId)
+          ? [{ id: editing.bookId, title: editing.bookTitle ?? "This book" }]
+          : []),
+        ...shelfBooks.filter((book) => !bookGoalIds.has(book.id) || book.id === editing.bookId),
+      ]
+    : availableBooks;
 
   async function remove(goal: GoalView) {
-    const accepted = await confirmAction(`Remove the goal “${goalTitle(goal)}”?`);
-    if (!accepted) return;
+    setLeavingId(goal.id);
     setBusy(true);
     try {
-      const response = await fetch(`/api/goals/${goal.id}`, { method: "DELETE" });
+      const [response] = await Promise.all([
+        fetch(`/api/goals/${goal.id}`, { method: "DELETE" }),
+        new Promise((resolve) => window.setTimeout(resolve, 180)),
+      ]);
       if (!response.ok) throw new Error("Could not remove that goal.");
       router.refresh();
     } catch (error) {
+      setLeavingId(null);
       notify(error instanceof Error ? error.message : "Could not remove that goal.");
     } finally {
       setBusy(false);
@@ -484,7 +523,14 @@ export function GoalsCard({
             {goals.active.length ? (
               <ul className="space-y-2">
                 {goals.active.map((goal) => (
-                  <GoalRow key={goal.id} goal={goal} busy={busy} onDelete={editable ? remove : undefined} />
+                  <GoalRow
+                    key={goal.id}
+                    goal={goal}
+                    busy={busy}
+                    leaving={leavingId === goal.id}
+                    onEdit={editable ? setEditing : undefined}
+                    onDelete={editable ? remove : undefined}
+                  />
                 ))}
               </ul>
             ) : null}
@@ -514,7 +560,14 @@ export function GoalsCard({
                 </summary>
                 <ul className="mt-3 space-y-2">
                   {past.map((goal) => (
-                    <GoalRow key={goal.id} goal={goal} busy={busy} onDelete={editable ? remove : undefined} />
+                    <GoalRow
+                    key={goal.id}
+                    goal={goal}
+                    busy={busy}
+                    leaving={leavingId === goal.id}
+                    onEdit={editable ? setEditing : undefined}
+                    onDelete={editable ? remove : undefined}
+                  />
                   ))}
                 </ul>
               </details>
@@ -523,24 +576,30 @@ export function GoalsCard({
         </div>
       ) : null}
 
-      {adding ? (
+      {adding || editing ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-espresso/35 lg:items-center lg:p-6">
           <div className="max-h-[92dvh] w-full max-w-[430px] overflow-y-auto overscroll-contain rounded-t-3xl bg-ivory px-5 pb-8 pt-4 text-left lg:max-h-[min(85vh,760px)] lg:max-w-lg lg:rounded-3xl lg:shadow-[0_24px_80px_rgba(45,33,27,0.18)]">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-serif text-2xl text-espresso">New goal</h2>
+              <h2 className="font-serif text-2xl text-espresso">{editing ? "Edit goal" : "New goal"}</h2>
               <button
                 type="button"
                 className="flex h-9 w-9 items-center justify-center rounded-full bg-cream"
-                onClick={() => setAdding(false)}
+                onClick={() => {
+                  setAdding(false);
+                  setEditing(null);
+                }}
                 aria-label="Close"
               >
                 <IconClose className="h-4 w-4" />
               </button>
             </div>
             <AddGoalForm
-              shelfBooks={availableBooks}
+              key={editing?.id ?? "new"}
+              shelfBooks={formBooks}
+              goal={editing ?? undefined}
               onCreated={(completed) => {
                 setAdding(false);
+                setEditing(null);
                 if (completed.length) setCelebrating(completed);
                 router.refresh();
               }}

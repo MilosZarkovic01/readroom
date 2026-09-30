@@ -171,7 +171,6 @@ export function PageProgressForm({
               ? "Add the total for your edition so we can show your progress."
               : null}
       </p>
-      <p className="mt-1 text-xs text-warm-gray">This total is only for your copy. It doesn&apos;t change the book for anyone else.</p>
 
       {error ? <p className="mt-2 text-sm text-terracotta">{error}</p> : null}
       <button

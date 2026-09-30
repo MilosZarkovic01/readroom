@@ -2,14 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-type ToastAction = { label: string; onClick: () => void };
-
 type ToastItem = {
   id: number;
   message: string;
-  action?: ToastAction;
-  dismissLabel?: string;
-  onDismiss?: () => void;
 };
 
 let items: ToastItem[] = [];
@@ -31,29 +26,6 @@ export function notify(message: string) {
   window.setTimeout(() => dismiss(id), 5000);
 }
 
-export function confirmAction(message: string, confirmLabel = "Remove") {
-  return new Promise<boolean>((resolve) => {
-    const id = nextId++;
-    let settled = false;
-    const finish = (accepted: boolean) => {
-      if (settled) return;
-      settled = true;
-      dismiss(id);
-      resolve(accepted);
-    };
-    publish([
-      {
-        id,
-        message,
-        action: { label: confirmLabel, onClick: () => finish(true) },
-        dismissLabel: "Cancel",
-        onDismiss: () => finish(false),
-      },
-      ...items,
-    ]);
-  });
-}
-
 export function AppToaster() {
   const [toasts, setToasts] = useState<ToastItem[]>(items);
 
@@ -73,30 +45,12 @@ export function AppToaster() {
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            role={toast.action ? "alertdialog" : "status"}
+            role="status"
             className="notify-pop rounded-[1.35rem] bg-ivory/95 shadow-[0_18px_40px_rgba(45,33,27,0.14)] ring-1 ring-beige/80 backdrop-blur-sm"
           >
             <div className="relative px-4 py-3.5 pl-5">
               <span className="absolute inset-y-3 left-2.5 w-[3px] rounded-full bg-gradient-to-b from-terracotta to-dusty-peach" />
               <p className="text-[13px] leading-snug text-espresso">{toast.message}</p>
-              {toast.action ? (
-                <div className="mt-3 flex justify-end gap-2">
-                  <button
-                    type="button"
-                    className="rounded-full px-3 py-1.5 text-xs font-medium text-warm-gray"
-                    onClick={toast.onDismiss}
-                  >
-                    {toast.dismissLabel ?? "Cancel"}
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-full bg-deep-brown px-3 py-1.5 text-xs font-medium text-ivory"
-                    onClick={toast.action.onClick}
-                  >
-                    {toast.action.label}
-                  </button>
-                </div>
-              ) : null}
             </div>
           </div>
         ))}

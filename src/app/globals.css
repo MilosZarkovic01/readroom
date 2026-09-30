@@ -85,6 +85,47 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   animation: notify-pop 0.38s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+@keyframes item-leave {
+  to {
+    opacity: 0;
+    transform: scale(0.98) translateY(-6px);
+  }
+}
+
+.item-leave {
+  animation: item-leave 0.18s ease forwards;
+  pointer-events: none;
+}
+
+@keyframes goal-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.goal-card-in {
+  animation: goal-card-in 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes goal-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.goal-fill {
+  transform-origin: left center;
+  animation: goal-fill 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}
+
 @keyframes badge-in {
   from {
     opacity: 0;
@@ -187,8 +228,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .badge-unlock-in,
   .badge-unlock-mark,
   .badge-unlock-glow,
-  .badge-confetti-piece {
+  .badge-confetti-piece,
+  .item-leave,
+  .goal-card-in,
+  .goal-fill {
     animation: none;
+  }
+
+  .goal-fill {
+    transform: none;
   }
 
   .badge-confetti {

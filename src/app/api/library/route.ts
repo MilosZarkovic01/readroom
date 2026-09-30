@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { ReadingStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { isForwardStatusMove, STATUSES } from "@/lib/status";
+import { STATUSES } from "@/lib/status";
 import { isValidRating } from "@/lib/rating";
 import { parsePageCount } from "@/lib/badges";
 import { pickSubjects, serializeSubjects } from "@/lib/subjects";
@@ -93,12 +93,6 @@ export async function POST(request: Request) {
       where,
       select: { status: true, finishedAt: true },
     });
-    if (previous && !isForwardStatusMove(previous.status, status)) {
-      return NextResponse.json(
-        { error: "Books move from Want to read, to Currently reading, to Read." },
-        { status: 400 },
-      );
-    }
     const finishedAt = finishedAtFor(previous, status);
     const before =
       status === "READ" ? await listGoalsWithProgress(session.user.id, { persist: false }) : null;
