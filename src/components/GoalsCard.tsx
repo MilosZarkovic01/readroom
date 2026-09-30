@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import {
@@ -12,23 +13,34 @@ import {
 } from "@/components/Icons";
 import {
   formatAmount,
+  GOAL_PERIODS,
   goalTitle,
   MAX_ACTIVE_GOALS,
   motivationLine,
+  periodNowLabel,
+  streakLabel,
   type GoalLists,
+  type GoalPeriod,
   type GoalType,
   type GoalView,
 } from "@/lib/goals";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 export type GoalShelfBook = { id: string; title: string };
 
 type Timeframe = "open" | "month" | "year" | "custom";
 
 const TYPE_OPTIONS: { value: GoalType; label: string }[] = [
-  { value: "BOOK_COUNT", label: "Books" },
   { value: "PAGE_COUNT", label: "Pages" },
+  { value: "BOOK_COUNT", label: "Books" },
   { value: "BOOK", label: "A book" },
 ];
+
+const PERIOD_LABELS: Record<GoalPeriod, string> = {
+  TOTAL: "In total",
+  DAILY: "Per day",
+  WEEKLY: "Per week",
+};
 
 const TIMEFRAME_OPTIONS: { value: Timeframe; label: string }[] = [
   { value: "open", label: "From today" },
@@ -37,8 +49,19 @@ const TIMEFRAME_OPTIONS: { value: Timeframe; label: string }[] = [
   { value: "custom", label: "Custom" },
 ];
 
+const DEFAULT_TARGETS: Record<Exclude<GoalType, "BOOK">, Record<GoalPeriod, string>> = {
+  PAGE_COUNT: { TOTAL: "3000", DAILY: "20", WEEKLY: "150" },
+  BOOK_COUNT: { TOTAL: "12", DAILY: "1", WEEKLY: "1" },
+};
+
 const inputClass =
-  "mt-1.5 w-full rounded-full border border-beige bg-cream px-4 py-2.5 text-sm text-espresso outline-none focus:border-walnut";
+  "mt-1.5 block w-full min-w-0 rounded-2xl border border-beige bg-cream px-4 py-2.5 text-sm text-espresso outline-none focus:border-walnut";
+
+function chipClass(selected: boolean) {
+  return `rounded-full border px-3 py-1.5 text-xs font-medium ${
+    selected ? "border-espresso bg-cream text-espresso" : "border-beige text-warm-gray"
+  }`;
+}
 
 function formatDate(date: string) {
   return new Intl.DateTimeFormat(undefined, {
@@ -49,8 +72,9 @@ function formatDate(date: string) {
 }
 
 function timeframeLabel(goal: GoalView) {
-  if (goal.endsAt) return `By ${formatDate(goal.endsAt)}`;
-  return `Since ${formatDate(goal.startsAt)}`;
+  const repeat = goal.period === "DAILY" ? " · resets daily" : goal.period === "WEEKLY" ? " · resets Mondays" : "";
+  if (goal.endsAt) return `By ${formatDate(goal.endsAt)}${repeat}`;
+  return `Since ${formatDate(goal.startsAt)}${repeat}`;
 }
 
 function toDateInput(date: Date) {
@@ -68,6 +92,7 @@ function fromDateInput(value: string, endOfDay: boolean) {
 
 function timeframeRange(timeframe: Timeframe, customStart: string, customEnd: string) {
   const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   if (timeframe === "month") {
     return {
       startsAt: new Date(now.getFullYear(), now.getMonth(), 1),
@@ -82,11 +107,11 @@ function timeframeRange(timeframe: Timeframe, customStart: string, customEnd: st
   }
   if (timeframe === "custom") {
     return {
-      startsAt: customStart ? fromDateInput(customStart, false) : new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+      startsAt: customStart ? fromDateInput(customStart, false) : today,
       endsAt: customEnd ? fromDateInput(customEnd, true) : null,
     };
   }
-  return { startsAt: new Date(now.getFullYear(), now.getMonth(), now.getDate()), endsAt: null };
+  return { startsAt: today, endsAt: null };
 }
 
 function GoalTypeIcon({ type, className }: { type: GoalType; className?: string }) {
@@ -96,7 +121,8 @@ function GoalTypeIcon({ type, className }: { type: GoalType; className?: string 
 }
 
 function ProgressBar({ goal }: { goal: GoalView }) {
-  const { percent, done } = goal.progress;
+  const { percent, done, metThisPeriod } = goal.progress;
+  const complete = done || metThisPeriod;
   return (
     <div
       className="h-2 w-full overflow-hidden rounded-full bg-beige"
@@ -107,8 +133,8 @@ function ProgressBar({ goal }: { goal: GoalView }) {
       aria-valuenow={percent}
     >
       <div
-        className={`h-full rounded-full transition-[width] duration-500 ${done ? "bg-sage" : "bg-dusty-peach"}`}
-        style={{ width: `${Math.max(percent, done ? 100 : 3)}%` }}
+        className={`h-full rounded-full transition-[width] duration-500 ${complete ? "bg-sage" : "bg-dusty-peach"}`}
+        style={{ width: `${complete ? 100 : Math.max(percent, 3)}%` }}
       />
     </div>
   );
@@ -117,7 +143,8 @@ function ProgressBar({ goal }: { goal: GoalView }) {
 function progressCount(goal: GoalView) {
   const { current, target, done } = goal.progress;
   if (goal.type === "BOOK") return done ? "Finished" : "Not finished yet";
-  return `${current.toLocaleString("en-US")} / ${formatAmount(goal.type, target)}`;
+  const now = periodNowLabel(goal.period);
+  return `${current.toLocaleString("en-US")} / ${formatAmount(goal.type, target)}${now ? ` ${now}` : ""}`;
 }
 
 function GoalRow({
@@ -130,12 +157,14 @@ function GoalRow({
   busy?: boolean;
 }) {
   const muted = goal.progress.expired;
+  const streak = streakLabel(goal.period, goal.progress.streak);
+  const complete = goal.progress.done || goal.progress.metThisPeriod;
   return (
     <li className="rounded-2xl border border-beige bg-cream/70 px-3 py-3">
       <div className="flex items-start gap-3">
         <span
           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-            goal.progress.done ? "bg-sage/15 text-walnut" : "bg-dusty-peach/35 text-deep-brown"
+            complete ? "bg-sage/15 text-walnut" : "bg-dusty-peach/35 text-deep-brown"
           }`}
         >
           <GoalTypeIcon type={goal.type} className="h-5 w-5" />
@@ -144,12 +173,17 @@ function GoalRow({
           <p className={`font-medium ${muted ? "text-warm-gray" : "text-espresso"}`}>{goalTitle(goal)}</p>
           <p className="mt-0.5 text-xs text-walnut">{timeframeLabel(goal)}</p>
         </div>
+        {streak && !muted ? (
+          <span className="mt-0.5 shrink-0 rounded-full bg-dusty-peach/35 px-2 py-0.5 text-[11px] font-medium text-deep-brown">
+            {streak}
+          </span>
+        ) : null}
         {onDelete ? (
           <button
             type="button"
             disabled={busy}
             onClick={() => onDelete(goal)}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-warm-gray hover:bg-beige disabled:opacity-50"
+            className="-mt-1 -mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-warm-gray hover:bg-beige disabled:opacity-50"
             aria-label={`Remove goal: ${goalTitle(goal)}`}
           >
             <IconClose className="h-4 w-4" />
@@ -158,8 +192,8 @@ function GoalRow({
       </div>
       <div className="mt-3">
         <ProgressBar goal={goal} />
-        <div className="mt-1.5 flex items-center justify-between gap-3 text-xs">
-          <span className="text-warm-gray">{motivationLine(goal.type, goal.progress)}</span>
+        <div className="mt-1.5 flex items-start justify-between gap-3 text-xs">
+          <span className="text-warm-gray">{motivationLine(goal.type, goal.progress, goal.period)}</span>
           <span className="shrink-0 font-medium text-espresso">{progressCount(goal)}</span>
         </div>
       </div>
@@ -168,14 +202,28 @@ function GoalRow({
 }
 
 function AddGoalForm({ shelfBooks, onCreated }: { shelfBooks: GoalShelfBook[]; onCreated: () => void }) {
-  const [type, setType] = useState<GoalType>("BOOK_COUNT");
-  const [target, setTarget] = useState("12");
+  const [type, setType] = useState<GoalType>("PAGE_COUNT");
+  const [period, setPeriod] = useState<GoalPeriod>("DAILY");
+  const [target, setTarget] = useState(DEFAULT_TARGETS.PAGE_COUNT.DAILY);
   const [bookId, setBookId] = useState(shelfBooks[0]?.id ?? "");
-  const [timeframe, setTimeframe] = useState<Timeframe>("year");
+  const [timeframe, setTimeframe] = useState<Timeframe>("open");
   const [customStart, setCustomStart] = useState(() => toDateInput(new Date()));
   const [customEnd, setCustomEnd] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  function chooseType(next: GoalType) {
+    setType(next);
+    const nextPeriod = GOAL_PERIODS[next].includes(period) ? period : "TOTAL";
+    setPeriod(nextPeriod);
+    if (next !== "BOOK") setTarget(DEFAULT_TARGETS[next][nextPeriod]);
+  }
+
+  function choosePeriod(next: GoalPeriod) {
+    setPeriod(next);
+    if (type !== "BOOK") setTarget(DEFAULT_TARGETS[type][next]);
+    setTimeframe(next === "TOTAL" ? "year" : "open");
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -188,6 +236,8 @@ function AddGoalForm({ shelfBooks, onCreated }: { shelfBooks: GoalShelfBook[]; o
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type,
+          period,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           target: type === "BOOK" ? null : Number(target),
           bookId: type === "BOOK" ? bookId : null,
           startsAt: startsAt.toISOString(),
@@ -204,6 +254,10 @@ function AddGoalForm({ shelfBooks, onCreated }: { shelfBooks: GoalShelfBook[]; o
     }
   }
 
+  const periods = GOAL_PERIODS[type];
+  const targetLabel = type === "PAGE_COUNT" ? "Pages" : "Books";
+  const targetSuffix = period === "DAILY" ? "a day" : period === "WEEKLY" ? "a week" : "in total";
+
   return (
     <form onSubmit={submit} className="space-y-4 rounded-2xl border border-beige bg-ivory p-4">
       <p className="font-medium text-espresso">New goal</p>
@@ -214,7 +268,7 @@ function AddGoalForm({ shelfBooks, onCreated }: { shelfBooks: GoalShelfBook[]; o
             type="button"
             role="radio"
             aria-checked={type === option.value}
-            onClick={() => setType(option.value)}
+            onClick={() => chooseType(option.value)}
             className={`flex flex-col items-center gap-1 rounded-2xl border px-2 py-2.5 text-xs font-medium ${
               type === option.value ? "border-espresso bg-cream text-espresso" : "border-beige text-warm-gray"
             }`}
@@ -227,9 +281,7 @@ function AddGoalForm({ shelfBooks, onCreated }: { shelfBooks: GoalShelfBook[]; o
 
       {type === "BOOK" ? (
         shelfBooks.length === 0 ? (
-          <p className="text-sm text-warm-gray">
-            Add a book to your Want to read or Reading shelf first.
-          </p>
+          <p className="text-sm text-warm-gray">Add a book to your Want to read or Reading shelf first.</p>
         ) : (
           <label className="block text-sm font-medium text-espresso">
             Book
@@ -247,28 +299,48 @@ function AddGoalForm({ shelfBooks, onCreated }: { shelfBooks: GoalShelfBook[]; o
           </label>
         )
       ) : (
-        <label className="block text-sm font-medium text-espresso">
-          {type === "PAGE_COUNT" ? "Pages to read" : "Books to finish"}
-          <input
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={type === "PAGE_COUNT" ? 1_000_000 : 1000}
-            required
-            value={target}
-            onChange={(event) => setTarget(event.target.value)}
-            className={inputClass}
-          />
-          {type === "PAGE_COUNT" ? (
-            <span className="mt-1 block text-xs font-normal text-warm-gray">
-              Books without a page count don&apos;t add pages.
-            </span>
-          ) : null}
-        </label>
+        <>
+          <div>
+            <p className="text-sm font-medium text-espresso">Repeat</p>
+            <div className="mt-1.5 flex flex-wrap gap-2" role="radiogroup" aria-label="Repeat">
+              {periods.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  role="radio"
+                  aria-checked={period === option}
+                  onClick={() => choosePeriod(option)}
+                  className={chipClass(period === option)}
+                >
+                  {PERIOD_LABELS[option]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <label className="block text-sm font-medium text-espresso">
+            {targetLabel} {targetSuffix}
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={type === "PAGE_COUNT" ? 1_000_000 : 1000}
+              required
+              value={target}
+              onChange={(event) => setTarget(event.target.value)}
+              className={inputClass}
+            />
+            {type === "PAGE_COUNT" ? (
+              <span className="mt-1 block text-xs font-normal text-warm-gray">
+                Pages count when you save your current page on a book you&apos;re reading, and when you finish
+                a book.
+              </span>
+            ) : null}
+          </label>
+        </>
       )}
 
       <div>
-        <p className="text-sm font-medium text-espresso">Timeframe</p>
+        <p className="text-sm font-medium text-espresso">{period === "TOTAL" ? "Timeframe" : "Runs"}</p>
         <div className="mt-1.5 flex flex-wrap gap-2" role="radiogroup" aria-label="Timeframe">
           {TIMEFRAME_OPTIONS.map((option) => (
             <button
@@ -277,17 +349,15 @@ function AddGoalForm({ shelfBooks, onCreated }: { shelfBooks: GoalShelfBook[]; o
               role="radio"
               aria-checked={timeframe === option.value}
               onClick={() => setTimeframe(option.value)}
-              className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
-                timeframe === option.value ? "border-espresso bg-cream text-espresso" : "border-beige text-warm-gray"
-              }`}
+              className={chipClass(timeframe === option.value)}
             >
               {option.label}
             </button>
           ))}
         </div>
         {timeframe === "custom" ? (
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <label className="block text-xs font-medium text-walnut">
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-2">
+            <label className="block min-w-0 text-xs font-medium text-walnut">
               Start
               <input
                 type="date"
@@ -296,7 +366,7 @@ function AddGoalForm({ shelfBooks, onCreated }: { shelfBooks: GoalShelfBook[]; o
                 className={inputClass}
               />
             </label>
-            <label className="block text-xs font-medium text-walnut">
+            <label className="block min-w-0 text-xs font-medium text-walnut">
               End (optional)
               <input
                 type="date"
@@ -343,10 +413,12 @@ export function GoalsCard({
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState(false);
+  useBodyScrollLock(open);
   const past = [...goals.completed, ...goals.ended];
   const canAdd = editable && goals.active.length < MAX_ACTIVE_GOALS;
   const bookGoalIds = new Set(goals.active.flatMap((goal) => (goal.bookId ? [goal.bookId] : [])));
   const availableBooks = shelfBooks.filter((book) => !bookGoalIds.has(book.id));
+  const hasPageGoal = goals.active.some((goal) => goal.type === "PAGE_COUNT");
 
   async function remove(goal: GoalView) {
     if (!confirm(`Remove the goal “${goalTitle(goal)}”?`)) return;
@@ -384,7 +456,7 @@ export function GoalsCard({
 
       {open ? (
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-espresso/35 lg:items-center lg:p-6">
-          <div className="max-h-[92vh] w-full max-w-[430px] overflow-y-auto rounded-t-3xl bg-ivory px-5 pb-8 pt-4 text-left lg:max-h-[min(85vh,760px)] lg:max-w-lg lg:rounded-3xl lg:shadow-[0_24px_80px_rgba(45,33,27,0.18)]">
+          <div className="max-h-[92dvh] w-full max-w-[430px] overflow-y-auto overscroll-contain rounded-t-3xl bg-ivory px-5 pb-8 pt-4 text-left lg:max-h-[min(85vh,760px)] lg:max-w-lg lg:rounded-3xl lg:shadow-[0_24px_80px_rgba(45,33,27,0.18)]">
             <div className="mb-1 flex items-center justify-between">
               <h2 className="font-serif text-2xl text-espresso">Reading goals</h2>
               <button
@@ -400,7 +472,7 @@ export function GoalsCard({
               {goals.active.length
                 ? `${goals.active.length} in progress`
                 : editable
-                  ? "Pick something to aim for. Every finished book moves you forward."
+                  ? "Pick something to aim for. Every page moves you forward."
                   : "No active goals right now."}
             </p>
 
@@ -410,6 +482,15 @@ export function GoalsCard({
                   <GoalRow key={goal.id} goal={goal} busy={busy} onDelete={editable ? remove : undefined} />
                 ))}
               </ul>
+            ) : null}
+
+            {editable && hasPageGoal ? (
+              <Link
+                href="/library?shelf=READING"
+                className="mt-3 block rounded-2xl bg-cream px-3 py-2.5 text-center text-sm font-medium text-walnut"
+              >
+                Log today&apos;s pages
+              </Link>
             ) : null}
 
             {editable ? (
@@ -454,28 +535,5 @@ export function GoalsCard({
         </div>
       ) : null}
     </>
-  );
-}
-
-export function GoalsStrip({ goals }: { goals: GoalView[] }) {
-  if (goals.length === 0) return null;
-  return (
-    <ul className="mt-3 grid gap-2 lg:grid-cols-2">
-      {goals.slice(0, 2).map((goal) => (
-        <li key={goal.id} className="rounded-2xl border border-beige bg-ivory px-4 py-3 text-left">
-          <div className="flex items-center justify-between gap-3">
-            <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-espresso">
-              <GoalTypeIcon type={goal.type} className="h-4 w-4 shrink-0 text-walnut" />
-              <span className="truncate">{goalTitle(goal)}</span>
-            </span>
-            <span className="shrink-0 text-xs font-medium text-walnut">{goal.progress.percent}%</span>
-          </div>
-          <div className="mt-2">
-            <ProgressBar goal={goal} />
-          </div>
-          <p className="mt-1.5 text-xs text-warm-gray">{motivationLine(goal.type, goal.progress)}</p>
-        </li>
-      ))}
-    </ul>
   );
 }

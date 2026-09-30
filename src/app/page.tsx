@@ -3,8 +3,9 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/AppShell";
-import { BookCover } from "@/components/BookCover";
 import { BooksOfTheWeek } from "@/components/BooksOfTheWeek";
+import { ContinueReadingList } from "@/components/ContinueReading";
+import { currentPagesFor } from "@/lib/reading-progress";
 import { SearchBar } from "@/components/SearchBar";
 import { StatusChip } from "@/components/StatusChip";
 import { STATUSES } from "@/lib/status";
@@ -81,7 +82,10 @@ export default async function HomePage() {
     WANT_TO_READ: entries.filter((entry) => entry.status === "WANT_TO_READ").length,
   };
   const continueReading = entries.filter((entry) => entry.status === "READING").slice(0, 3);
-  const booksOfTheWeek = await getBooksOfTheWeek(entries.map((entry) => entry.book.openLibraryKey));
+  const [booksOfTheWeek, currentPages] = await Promise.all([
+    getBooksOfTheWeek(entries.map((entry) => entry.book.openLibraryKey)),
+    currentPagesFor(continueReading.map((entry) => entry.id)),
+  ]);
 
   return (
     <AppShell>
@@ -112,19 +116,16 @@ export default async function HomePage() {
               See all
             </Link>
           </div>
-          <ul className="mt-2 divide-y divide-beige">
-            {continueReading.map((entry) => (
-              <li key={entry.id}>
-                <Link href="/library?shelf=READING" className="flex items-center gap-3 py-3">
-                  <BookCover coverId={entry.book.coverId} title={entry.book.title} size="XS" />
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{entry.book.title}</p>
-                    <p className="truncate text-sm text-warm-gray">{entry.book.author}</p>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <ContinueReadingList
+            items={continueReading.map((entry) => ({
+              entryId: entry.id,
+              title: entry.book.title,
+              author: entry.book.author,
+              coverId: entry.book.coverId,
+              pageCount: entry.book.pageCount,
+              currentPage: currentPages.get(entry.id) ?? null,
+            }))}
+          />
         </>
       ) : null}
       {booksOfTheWeek.length ? <BooksOfTheWeek books={booksOfTheWeek} /> : null}

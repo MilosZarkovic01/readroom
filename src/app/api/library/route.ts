@@ -9,6 +9,7 @@ import { pickSubjects, serializeSubjects } from "@/lib/subjects";
 import { unlockEarnedBadges } from "@/lib/unlock-badges";
 import { finishedAtFor } from "@/lib/goals";
 import { listGoalsWithProgress } from "@/lib/reading-goals";
+import { saveReadingProgress } from "@/lib/reading-progress";
 
 const STATUSES_SET = new Set<ReadingStatus>(STATUSES);
 
@@ -111,6 +112,10 @@ export async function POST(request: Request) {
       },
       include: { book: true },
     });
+
+    if (status === "READ" && previous?.status !== "READ" && entry.book.pageCount) {
+      await saveReadingProgress(session.user.id, entry.id, entry.book.pageCount);
+    }
 
     const unlocked = await unlockEarnedBadges(session.user.id);
     const completedGoals =

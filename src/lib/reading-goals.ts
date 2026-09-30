@@ -4,34 +4,37 @@ import { computeGoalProgress, type GoalLists, type GoalView } from "@/lib/goals"
 export async function listGoalsWithProgress(
   userId: string,
 ): Promise<GoalLists & { newlyCompleted: GoalView[] }> {
-  const [goals, entries] = await Promise.all([
-    prisma.readingGoal.findMany({
-      where: { userId },
-      include: { book: { select: { title: true } } },
-      orderBy: { createdAt: "asc" },
-    }),
+  const goals = await prisma.readingGoal.findMany({
+    where: { userId },
+    include: { book: { select: { title: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+  if (goals.length === 0) return { active: [], completed: [], ended: [], newlyCompleted: [] };
+
+  const earliest = goals.reduce((min, goal) => (goal.startsAt < min ? goal.startsAt : min), goals[0].startsAt);
+  const [entries, logs] = await Promise.all([
     prisma.libraryEntry.findMany({
       where: { userId, status: "READ" },
-      select: { bookId: true, status: true, finishedAt: true, book: { select: { pageCount: true } } },
+      select: { bookId: true, status: true, finishedAt: true },
     }),
+    goals.some((goal) => goal.type === "PAGE_COUNT")
+      ? prisma.readingLog.findMany({
+          where: { userId, createdAt: { gte: earliest } },
+          select: { createdAt: true, pagesRead: true },
+        })
+      : Promise.resolve([]),
   ]);
-
-  const snapshots = entries.map((entry) => ({
-    bookId: entry.bookId,
-    status: entry.status,
-    finishedAt: entry.finishedAt,
-    pageCount: entry.book.pageCount,
-  }));
 
   const now = new Date();
   const views: GoalView[] = [];
   const newlyCompleted: GoalView[] = [];
   for (const goal of goals) {
-    const progress = computeGoalProgress(goal, snapshots, now);
+    const progress = computeGoalProgress(goal, entries, logs, now);
     const completedAt = goal.completedAt ?? (progress.done ? now : null);
     const view: GoalView = {
       id: goal.id,
       type: goal.type,
+      period: goal.period,
       target: goal.target,
       bookId: goal.bookId,
       bookTitle: goal.book?.title ?? null,

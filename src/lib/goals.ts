@@ -1,6 +1,15 @@
+import { periodWindow, previousWindow, safeTimeZone, type RecurringPeriod } from "./zoned-time";
+
 export type GoalType = "BOOK" | "BOOK_COUNT" | "PAGE_COUNT";
+export type GoalPeriod = "TOTAL" | RecurringPeriod;
 
 export const GOAL_TYPES: GoalType[] = ["BOOK_COUNT", "PAGE_COUNT", "BOOK"];
+
+export const GOAL_PERIODS: Record<GoalType, GoalPeriod[]> = {
+  PAGE_COUNT: ["TOTAL", "DAILY", "WEEKLY"],
+  BOOK_COUNT: ["TOTAL", "WEEKLY"],
+  BOOK: ["TOTAL"],
+};
 
 export const MAX_ACTIVE_GOALS = 5;
 
@@ -9,8 +18,12 @@ export const GOAL_LIMITS: Record<Exclude<GoalType, "BOOK">, number> = {
   PAGE_COUNT: 1_000_000,
 };
 
+const STREAK_LOOKBACK = 366;
+
 export type GoalRecord = {
   type: GoalType;
+  period: GoalPeriod;
+  timeZone: string | null;
   target: number | null;
   bookId: string | null;
   startsAt: Date;
@@ -22,8 +35,9 @@ export type GoalEntrySnapshot = {
   bookId: string;
   status: "WANT_TO_READ" | "READING" | "READ";
   finishedAt: Date | null;
-  pageCount: number | null;
 };
+
+export type GoalLogSnapshot = { createdAt: Date; pagesRead: number };
 
 export type GoalProgress = {
   current: number;
@@ -32,11 +46,15 @@ export type GoalProgress = {
   done: boolean;
   expired: boolean;
   daysLeft: number | null;
+  metThisPeriod: boolean;
+  streak: number;
+  bestStreak: number;
 };
 
 export type GoalView = {
   id: string;
   type: GoalType;
+  period: GoalPeriod;
   target: number | null;
   bookId: string | null;
   bookTitle: string | null;
@@ -65,43 +83,104 @@ export function readCompletedGoalsFromApi(payload: unknown): GoalView[] {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-function inWindow(goal: GoalRecord, finishedAt: Date | null) {
-  if (!finishedAt) return false;
-  if (finishedAt < goal.startsAt) return false;
-  return !goal.endsAt || finishedAt <= goal.endsAt;
+function withinGoal(goal: GoalRecord, date: Date | null): date is Date {
+  if (!date) return false;
+  if (date < goal.startsAt) return false;
+  return !goal.endsAt || date <= goal.endsAt;
+}
+
+function goalTarget(goal: GoalRecord) {
+  return goal.type === "BOOK" ? 1 : Math.max(1, goal.target ?? 1);
+}
+
+function amountEvents(goal: GoalRecord, entries: GoalEntrySnapshot[], logs: GoalLogSnapshot[]) {
+  if (goal.type === "PAGE_COUNT") {
+    return logs
+      .filter((log) => withinGoal(goal, log.createdAt))
+      .map((log) => ({ at: log.createdAt, amount: log.pagesRead }));
+  }
+  return entries
+    .filter((entry) => entry.status === "READ" && withinGoal(goal, entry.finishedAt))
+    .filter((entry) => goal.type !== "BOOK" || entry.bookId === goal.bookId)
+    .map((entry) => ({ at: entry.finishedAt as Date, amount: 1 }));
+}
+
+function daysUntil(goal: GoalRecord, now: Date) {
+  if (!goal.endsAt) return null;
+  return Math.max(0, Math.ceil((goal.endsAt.getTime() - now.getTime()) / DAY_MS));
+}
+
+function streaks(results: boolean[]) {
+  let best = 0;
+  let run = 0;
+  for (const met of results) {
+    run = met ? run + 1 : 0;
+    best = Math.max(best, run);
+  }
+  const from = results[0] ? 0 : 1;
+  let streak = 0;
+  for (let index = from; index < results.length && results[index]; index += 1) streak += 1;
+  return { streak, best };
 }
 
 export function computeGoalProgress(
   goal: GoalRecord,
   entries: GoalEntrySnapshot[],
+  logs: GoalLogSnapshot[],
   now: Date = new Date(),
 ): GoalProgress {
-  const finished = entries.filter(
-    (entry) => entry.status === "READ" && inWindow(goal, entry.finishedAt),
-  );
+  const target = goalTarget(goal);
+  const events = amountEvents(goal, entries, logs);
 
-  let current: number;
-  let target: number;
-  if (goal.type === "BOOK") {
-    target = 1;
-    current = finished.some((entry) => entry.bookId === goal.bookId) ? 1 : 0;
-  } else if (goal.type === "BOOK_COUNT") {
-    target = goal.target ?? 1;
-    current = finished.length;
-  } else {
-    target = goal.target ?? 1;
-    current = finished.reduce((sum, entry) => sum + (entry.pageCount ?? 0), 0);
+  if (goal.period === "TOTAL") {
+    const total = Math.max(0, events.reduce((sum, event) => sum + event.amount, 0));
+    const done = goal.completedAt != null || total >= target;
+    const expired = !done && goal.endsAt != null && now > goal.endsAt;
+    return {
+      current: Math.min(total, target),
+      target,
+      percent: done ? 100 : Math.min(100, Math.floor((total / target) * 100)),
+      done,
+      expired,
+      daysLeft: done || expired ? null : daysUntil(goal, now),
+      metThisPeriod: done,
+      streak: 0,
+      bestStreak: 0,
+    };
   }
 
-  const done = goal.completedAt != null || current >= target;
-  const expired = !done && goal.endsAt != null && now > goal.endsAt;
-  const daysLeft =
-    !done && !expired && goal.endsAt
-      ? Math.max(0, Math.ceil((goal.endsAt.getTime() - now.getTime()) / DAY_MS))
-      : null;
-  const percent = done ? 100 : Math.min(100, Math.floor((current / target) * 100));
+  const period = goal.period;
+  const timeZone = safeTimeZone(goal.timeZone);
+  const expired = goal.endsAt != null && now > goal.endsAt;
+  const reference = expired && goal.endsAt ? goal.endsAt : now;
 
-  return { current: Math.min(current, target), target, percent, done, expired, daysLeft };
+  const buckets = new Map<string, number>();
+  for (const event of events) {
+    const key = periodWindow(event.at, period, timeZone).key;
+    buckets.set(key, (buckets.get(key) ?? 0) + event.amount);
+  }
+
+  const results: boolean[] = [];
+  let window = periodWindow(reference, period, timeZone);
+  const current = Math.max(0, buckets.get(window.key) ?? 0);
+  for (let index = 0; index < STREAK_LOOKBACK && window.end > goal.startsAt; index += 1) {
+    results.push((buckets.get(window.key) ?? 0) >= target);
+    window = previousWindow(window, period, timeZone);
+  }
+  const { streak, best } = streaks(results);
+  const metThisPeriod = current >= target;
+
+  return {
+    current: Math.min(current, target),
+    target,
+    percent: Math.min(100, Math.floor((current / target) * 100)),
+    done: false,
+    expired,
+    daysLeft: expired ? null : daysUntil(goal, now),
+    metThisPeriod: !expired && metThisPeriod,
+    streak: expired ? 0 : streak,
+    bestStreak: best,
+  };
 }
 
 export function finishedAtFor(
@@ -120,12 +199,50 @@ export function formatAmount(type: GoalType, amount: number) {
   return `${value} ${amount === 1 ? "book" : "books"}`;
 }
 
-export function goalTitle(goal: { type: GoalType; target: number | null; bookTitle: string | null }) {
+const PERIOD_SUFFIX: Record<GoalPeriod, string> = {
+  TOTAL: "",
+  DAILY: " per day",
+  WEEKLY: " per week",
+};
+
+const PERIOD_NOW: Record<RecurringPeriod, string> = { DAILY: "today", WEEKLY: "this week" };
+const PERIOD_UNIT: Record<RecurringPeriod, string> = { DAILY: "day", WEEKLY: "week" };
+
+export function goalTitle(goal: {
+  type: GoalType;
+  period?: GoalPeriod;
+  target: number | null;
+  bookTitle: string | null;
+}) {
   if (goal.type === "BOOK") return `Finish ${goal.bookTitle ?? "a book"}`;
-  return `Read ${formatAmount(goal.type, goal.target ?? 0)}`;
+  return `Read ${formatAmount(goal.type, goal.target ?? 0)}${PERIOD_SUFFIX[goal.period ?? "TOTAL"]}`;
 }
 
-export function motivationLine(type: GoalType, progress: GoalProgress) {
+export function periodNowLabel(period: GoalPeriod) {
+  return period === "TOTAL" ? "" : PERIOD_NOW[period];
+}
+
+export function streakLabel(period: GoalPeriod, streak: number) {
+  if (period === "TOTAL" || streak <= 0) return null;
+  return `${streak}-${PERIOD_UNIT[period]} streak`;
+}
+
+function recurringMotivation(type: GoalType, period: RecurringPeriod, progress: GoalProgress) {
+  const unit = PERIOD_UNIT[period];
+  if (progress.expired) {
+    return progress.bestStreak > 0
+      ? `Ended · best streak ${progress.bestStreak} ${progress.bestStreak === 1 ? unit : `${unit}s`}`
+      : "Ended";
+  }
+  const now = PERIOD_NOW[period];
+  const streak = streakLabel(period, progress.streak);
+  if (progress.metThisPeriod) return `Done for ${now}!`;
+  const remaining = `${formatAmount(type, progress.target - progress.current)} to go ${now}`;
+  return streak ? `${remaining} · keep your ${streak} going` : remaining;
+}
+
+export function motivationLine(type: GoalType, progress: GoalProgress, period: GoalPeriod = "TOTAL") {
+  if (period !== "TOTAL") return recurringMotivation(type, period, progress);
   if (progress.done) return "Goal reached!";
   if (progress.expired) {
     return type === "BOOK"
@@ -151,6 +268,8 @@ export function motivationLine(type: GoalType, progress: GoalProgress) {
 
 export type GoalInput = {
   type: GoalType;
+  period: GoalPeriod;
+  timeZone: string;
   target: number | null;
   bookId: string | null;
   startsAt: Date;
@@ -183,6 +302,11 @@ export function validateGoalInput(
     return { ok: false, error: `You can have up to ${MAX_ACTIVE_GOALS} active goals.` };
   }
 
+  const period = (input.period ?? "TOTAL") as GoalPeriod;
+  if (!GOAL_PERIODS[type].includes(period)) {
+    return { ok: false, error: "Choose how often this goal repeats." };
+  }
+
   let target: number | null = null;
   let bookId: string | null = null;
   if (type === "BOOK") {
@@ -211,5 +335,8 @@ export function validateGoalInput(
   if (endsAt && endsAt <= start) return { ok: false, error: "End date must be after the start date." };
   if (endsAt && endsAt <= now) return { ok: false, error: "End date must be in the future." };
 
-  return { ok: true, value: { type, target, bookId, startsAt: start, endsAt } };
+  return {
+    ok: true,
+    value: { type, period, timeZone: safeTimeZone(input.timeZone), target, bookId, startsAt: start, endsAt },
+  };
 }

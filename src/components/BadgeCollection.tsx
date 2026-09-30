@@ -4,6 +4,7 @@ import { useState } from "react";
 import { BadgeIcon, badgeTileClass } from "@/components/BadgeIcon";
 import { IconChevron, IconClose, IconLibrary } from "@/components/Icons";
 import type { BadgeAward } from "@/lib/badges";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 function formatUnlocked(date: string) {
   return new Intl.DateTimeFormat(undefined, {
@@ -16,6 +17,7 @@ function formatUnlocked(date: string) {
 export function BadgeCollection({ badges }: { badges: BadgeAward[] }) {
   const [open, setOpen] = useState(false);
   const latest = badges.at(-1);
+  useBodyScrollLock(open);
 
   return (
     <>
@@ -44,7 +46,7 @@ export function BadgeCollection({ badges }: { badges: BadgeAward[] }) {
 
       {open ? (
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-espresso/35 lg:items-center lg:p-6">
-          <div className="max-h-[92vh] w-full max-w-[430px] overflow-y-auto rounded-t-3xl bg-ivory px-5 pb-8 pt-4 lg:max-h-[min(85vh,760px)] lg:max-w-lg lg:rounded-3xl lg:shadow-[0_24px_80px_rgba(45,33,27,0.18)]">
+          <div className="max-h-[92dvh] w-full max-w-[430px] overflow-y-auto overscroll-contain rounded-t-3xl bg-ivory px-5 pb-8 pt-4 lg:max-h-[min(85vh,760px)] lg:max-w-lg lg:rounded-3xl lg:shadow-[0_24px_80px_rgba(45,33,27,0.18)]">
             <div className="mb-1 flex items-center justify-between">
               <h2 className="font-serif text-2xl text-espresso">Badges</h2>
               <button

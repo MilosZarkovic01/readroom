@@ -7,7 +7,7 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { ProfileStats } from "@/components/ProfileStats";
 import { serializeActivity } from "@/lib/feed";
 import { listUnlockedBadges } from "@/lib/unlock-badges";
-import { GoalsCard, GoalsStrip } from "@/components/GoalsCard";
+import { GoalsCard } from "@/components/GoalsCard";
 import { listGoalsWithProgress } from "@/lib/reading-goals";
 
 export default async function ProfilePage() {
@@ -69,7 +69,6 @@ export default async function ProfilePage() {
           shelfBooks={shelfEntries.map((entry) => entry.book)}
         />
       </div>
-      <GoalsStrip goals={goals.active} />
       <h2 className="mt-8 text-base font-medium lg:mt-10">Reading activity</h2>
       {entries.length === 0 ? (
         <p className="pt-8 text-center text-sm text-warm-gray">No activity yet.</p>

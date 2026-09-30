@@ -14,6 +14,7 @@ import { readUnlockedFromApi, type BadgeAward } from "@/lib/badges";
 import { readCompletedGoalsFromApi, type GoalView } from "@/lib/goals";
 import { STATUS_LABELS } from "@/lib/status";
 import type { OpenLibraryBook } from "@/lib/open-library";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 type SearchBook = OpenLibraryBook & { libraryStatus: ReadingStatus | null };
 
@@ -34,6 +35,7 @@ export function SearchResultCard({
   const [error, setError] = useState<string | null>(null);
   const [unlocked, setUnlocked] = useState<BadgeAward[]>([]);
   const [completedGoals, setCompletedGoals] = useState<GoalView[]>([]);
+  useBodyScrollLock(step !== "closed");
 
   function goToShelf() {
     router.push(`/library?shelf=${status}`);
@@ -107,7 +109,7 @@ export function SearchResultCard({
 
       {step !== "closed" ? (
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-espresso/35 lg:items-center lg:p-6">
-          <div className="max-h-[92vh] w-full max-w-[430px] overflow-y-auto rounded-t-3xl bg-ivory px-5 pb-8 pt-4 lg:max-h-[min(85vh,760px)] lg:max-w-lg lg:rounded-3xl lg:shadow-[0_24px_80px_rgba(45,33,27,0.18)]">
+          <div className="max-h-[92dvh] w-full max-w-[430px] overflow-y-auto overscroll-contain rounded-t-3xl bg-ivory px-5 pb-8 pt-4 lg:max-h-[min(85vh,760px)] lg:max-w-lg lg:rounded-3xl lg:shadow-[0_24px_80px_rgba(45,33,27,0.18)]">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-serif text-2xl text-espresso">
                 {step === "add" ? "Add to library" : book.title}

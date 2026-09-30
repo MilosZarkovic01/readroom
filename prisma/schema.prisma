@@ -19,6 +19,12 @@ enum GoalType {
   PAGE_COUNT
 }
 
+enum GoalPeriod {
+  TOTAL
+  DAILY
+  WEEKLY
+}
+
 model User {
   id              String             @id @default(cuid())
   email           String             @unique
@@ -36,6 +42,7 @@ model User {
   actedNotifications  Notification[]     @relation("NotificationActor")
   badges              UserBadge[]
   goals               ReadingGoal[]
+  readingLogs         ReadingLog[]
 }
 
 model Follow {
@@ -125,6 +132,7 @@ model LibraryEntry {
   book      Book             @relation(fields: [bookId], references: [id], onDelete: Cascade)
   likes     ActivityLike[]
   comments  ActivityComment[]
+  readingLogs ReadingLog[]
 
   @@unique([userId, bookId])
   @@index([userId, status])
@@ -145,6 +153,8 @@ model ReadingGoal {
   id          String    @id @default(cuid())
   userId      String
   type        GoalType
+  period      GoalPeriod @default(TOTAL)
+  timeZone    String?
   target      Int?
   bookId      String?
   startsAt    DateTime  @default(now())
@@ -155,6 +165,20 @@ model ReadingGoal {
   book        Book?     @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@index([userId, completedAt])
+}
+
+model ReadingLog {
+  id        String       @id @default(cuid())
+  userId    String
+  entryId   String
+  page      Int
+  pagesRead Int
+  createdAt DateTime     @default(now())
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entry     LibraryEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([entryId, createdAt])
 }
 
 model PasswordReset {

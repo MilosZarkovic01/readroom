@@ -14,6 +14,8 @@ import { readCompletedGoalsFromApi, type GoalView } from "@/lib/goals";
 import { formatRating } from "@/lib/rating";
 import { STATUSES, STATUS_SHORT } from "@/lib/status";
 import { CategoryChips } from "@/components/CategoryChips";
+import { PageProgressBar, PageProgressForm, type ProgressSaveResult } from "@/components/ReadingProgress";
+import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 export type LibraryCardEntry = {
   id: string;
@@ -27,7 +29,9 @@ export type LibraryCardEntry = {
     firstPublishYear: number | null;
     description: string | null;
     subjects: string[];
+    pageCount: number | null;
   };
+  currentPage: number | null;
 };
 
 export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
@@ -39,6 +43,7 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
   const [review, setReview] = useState(entry.review ?? "");
   const [unlocked, setUnlocked] = useState<BadgeAward[]>([]);
   const [completedGoals, setCompletedGoals] = useState<GoalView[]>([]);
+  useBodyScrollLock(open);
 
   async function patch(body: {
     status?: ReadingStatus;
@@ -56,19 +61,38 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
       if (!response.ok) {
         throw new Error(payload?.error ?? "Could not save your review.");
       }
-      const awards = readUnlockedFromApi(payload);
-      const goals = readCompletedGoalsFromApi(payload);
-      if (awards.length || goals.length) {
-        setOpen(false);
-        setUnlocked(awards);
-        setCompletedGoals(goals);
-      }
-      router.refresh();
+      celebrateThenRefresh(readUnlockedFromApi(payload), readCompletedGoalsFromApi(payload));
     } catch (error) {
       alert(error instanceof Error ? error.message : "Could not save your review.");
     } finally {
       setBusy(false);
     }
+  }
+
+  function celebrateThenRefresh(awards: BadgeAward[], goals: GoalView[]) {
+    if (awards.length || goals.length) {
+      setOpen(false);
+      setUnlocked(awards);
+      setCompletedGoals(goals);
+      return;
+    }
+    router.refresh();
+  }
+
+  function progressSaved(result: ProgressSaveResult) {
+    setStatus(result.status);
+    if (result.finished) setOpen(false);
+    celebrateThenRefresh(result.unlocked, result.completedGoals);
+  }
+
+  function finishCelebration() {
+    if (unlocked.length) {
+      setUnlocked([]);
+      if (completedGoals.length) return;
+    } else {
+      setCompletedGoals([]);
+    }
+    router.refresh();
   }
 
   async function remove() {
@@ -95,17 +119,25 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
         <span className="min-w-0 flex-1">
           <span className="block truncate font-medium text-espresso">{entry.book.title}</span>
           <span className="mt-0.5 block truncate text-sm text-warm-gray">{entry.book.author}</span>
-          <span className="mt-1 flex items-center gap-2">
-            <StarRating value={rating} size="sm" />
-            {rating ? <span className="text-xs text-warm-gray">{formatRating(rating)}</span> : null}
-          </span>
+          {entry.status === "READING" ? (
+            <PageProgressBar
+              currentPage={entry.currentPage}
+              pageCount={entry.book.pageCount}
+              className="mt-1.5 max-w-64"
+            />
+          ) : (
+            <span className="mt-1 flex items-center gap-2">
+              <StarRating value={rating} size="sm" />
+              {rating ? <span className="text-xs text-warm-gray">{formatRating(rating)}</span> : null}
+            </span>
+          )}
         </span>
         <IconChevron className="h-5 w-5 shrink-0 text-dusty-peach" />
       </button>
 
       {open ? (
         <div className="fixed inset-0 z-40 flex items-end justify-center bg-espresso/35 lg:items-center lg:p-6">
-          <div className="max-h-[90vh] w-full max-w-[430px] overflow-y-auto rounded-t-3xl bg-ivory px-5 pb-8 pt-4 lg:max-h-[min(85vh,760px)] lg:max-w-lg lg:rounded-3xl lg:shadow-[0_24px_80px_rgba(45,33,27,0.18)]">
+          <div className="max-h-[90dvh] w-full max-w-[430px] overflow-y-auto overscroll-contain rounded-t-3xl bg-ivory px-5 pb-8 pt-4 lg:max-h-[min(85vh,760px)] lg:max-w-lg lg:rounded-3xl lg:shadow-[0_24px_80px_rgba(45,33,27,0.18)]">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-serif text-2xl text-espresso">Edit library</h2>
               <button
@@ -127,6 +159,17 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
             </div>
             {entry.book.description ? (
               <p className="mb-5 text-sm leading-relaxed text-warm-gray">{entry.book.description}</p>
+            ) : null}
+            {status === "READING" ? (
+              <div className="mb-5">
+                <p className="mb-2 text-sm font-medium text-espresso">Reading progress</p>
+                <PageProgressForm
+                  entryId={entry.id}
+                  currentPage={entry.currentPage}
+                  pageCount={entry.book.pageCount}
+                  onSaved={progressSaved}
+                />
+              </div>
             ) : null}
             <CategoryChips subjects={entry.book.subjects} />
             <p className="mb-2 text-sm font-medium text-espresso">Status</p>
@@ -170,9 +213,9 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
         </div>
       ) : null}
       {unlocked.length ? (
-        <BadgeUnlockModal badges={unlocked} onDone={() => setUnlocked([])} />
+        <BadgeUnlockModal badges={unlocked} onDone={finishCelebration} />
       ) : completedGoals.length ? (
-        <GoalCompleteModal goals={completedGoals} onDone={() => setCompletedGoals([])} />
+        <GoalCompleteModal goals={completedGoals} onDone={finishCelebration} />
       ) : null}
     </>
   );
