@@ -32,6 +32,11 @@ export function parsePage(value: unknown, max: number): number | null {
   return page;
 }
 
+/** The reader's own total only fills in for books whose shared page count is unknown. */
+export function entryPageCount(entry: { pageCountOverride: number | null; book: { pageCount: number | null } }) {
+  return entry.book.pageCount ?? entry.pageCountOverride;
+}
+
 export function progressPercent(currentPage: number | null, pageCount: number | null) {
   if (!currentPage || !pageCount) return 0;
   return Math.min(100, Math.round((currentPage / pageCount) * 100));

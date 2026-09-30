@@ -6,6 +6,7 @@ import type { ReadingStatus } from "@prisma/client";
 import { STATUSES } from "@/lib/status";
 import { parseSubjects } from "@/lib/subjects";
 import { currentPagesFor } from "@/lib/reading-progress";
+import { entryPageCount } from "@/lib/progress";
 
 export default async function LibraryPage({
   searchParams,
@@ -48,7 +49,7 @@ export default async function LibraryPage({
             firstPublishYear: entry.book.firstPublishYear,
             description: entry.book.description,
             subjects: parseSubjects(entry.book.subjects),
-            pageCount: entry.book.pageCount,
+            pageCount: entryPageCount(entry),
           },
           currentPage: currentPages.get(entry.id) ?? null,
         }))}

@@ -8,6 +8,7 @@ import { unlockEarnedBadges } from "@/lib/unlock-badges";
 import { finishedAtFor } from "@/lib/goals";
 import { listGoalsWithProgress } from "@/lib/reading-goals";
 import { saveReadingProgress } from "@/lib/reading-progress";
+import { entryPageCount } from "@/lib/progress";
 
 const STATUSES_SET = new Set<ReadingStatus>(STATUSES);
 
@@ -71,8 +72,9 @@ export async function PATCH(request: Request, context: RouteContext) {
       include: { book: true },
     });
 
-    if (data.status === "READ" && existing.status !== "READ" && entry.book.pageCount) {
-      await saveReadingProgress(session.user.id, entry.id, entry.book.pageCount);
+    const pageCount = entryPageCount(entry);
+    if (data.status === "READ" && existing.status !== "READ" && pageCount) {
+      await saveReadingProgress(session.user.id, entry.id, pageCount);
     }
 
     const unlocked = await unlockEarnedBadges(session.user.id);

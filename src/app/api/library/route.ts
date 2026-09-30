@@ -10,6 +10,7 @@ import { unlockEarnedBadges } from "@/lib/unlock-badges";
 import { finishedAtFor } from "@/lib/goals";
 import { listGoalsWithProgress } from "@/lib/reading-goals";
 import { saveReadingProgress } from "@/lib/reading-progress";
+import { entryPageCount } from "@/lib/progress";
 
 const STATUSES_SET = new Set<ReadingStatus>(STATUSES);
 
@@ -113,8 +114,9 @@ export async function POST(request: Request) {
       include: { book: true },
     });
 
-    if (status === "READ" && previous?.status !== "READ" && entry.book.pageCount) {
-      await saveReadingProgress(session.user.id, entry.id, entry.book.pageCount);
+    const entryPages = entryPageCount(entry);
+    if (status === "READ" && previous?.status !== "READ" && entryPages) {
+      await saveReadingProgress(session.user.id, entry.id, entryPages);
     }
 
     const unlocked = await unlockEarnedBadges(session.user.id);

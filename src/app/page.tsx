@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { BooksOfTheWeek } from "@/components/BooksOfTheWeek";
 import { ContinueReadingList } from "@/components/ContinueReading";
 import { currentPagesFor } from "@/lib/reading-progress";
+import { entryPageCount } from "@/lib/progress";
 import { SearchBar } from "@/components/SearchBar";
 import { StatusChip } from "@/components/StatusChip";
 import { STATUSES } from "@/lib/status";
@@ -122,7 +123,7 @@ export default async function HomePage() {
               title: entry.book.title,
               author: entry.book.author,
               coverId: entry.book.coverId,
-              pageCount: entry.book.pageCount,
+              pageCount: entryPageCount(entry),
               currentPage: currentPages.get(entry.id) ?? null,
             }))}
           />

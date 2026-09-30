@@ -3,7 +3,7 @@ import type { ReadingStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { finishedAtFor } from "@/lib/goals";
-import { MAX_PAGES, parsePage } from "@/lib/progress";
+import { MAX_PAGES, entryPageCount, parsePage } from "@/lib/progress";
 import { listGoalsWithProgress } from "@/lib/reading-goals";
 import { saveReadingProgress } from "@/lib/reading-progress";
 import { unlockEarnedBadges } from "@/lib/unlock-badges";
@@ -28,7 +28,7 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
-  let pageCount = entry.book.pageCount;
+  let pageCount = entryPageCount(entry);
   if (pageCount == null && body?.totalPages != null && body.totalPages !== "") {
     const total = parsePage(body.totalPages, MAX_PAGES);
     if (!total) {
@@ -56,14 +56,19 @@ export async function POST(request: Request, context: RouteContext) {
   else if (page > 0 && entry.status === "WANT_TO_READ") nextStatus = "READING";
 
   try {
-    if (pageCount != null && entry.book.pageCount == null) {
-      await prisma.book.update({ where: { id: entry.book.id }, data: { pageCount } });
-    }
+    const savesOverride = pageCount != null && pageCount !== entryPageCount(entry);
+    // #region agent log
+    fetch('http://127.0.0.1:7866/ingest/799abf13-21c8-4bf6-b833-707b1ff5f96f',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cffb3a'},body:JSON.stringify({sessionId:'cffb3a',runId:'post-fix',hypothesisId:'CR',location:'progress/route.ts:save',message:'page count source',data:{bookPageCount:entry.book.pageCount,override:entry.pageCountOverride,pageCount,savesOverride,page},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     await saveReadingProgress(userId, entry.id, page);
-    if (nextStatus !== entry.status) {
+    if (nextStatus !== entry.status || savesOverride) {
       await prisma.libraryEntry.update({
         where: { id: entry.id },
-        data: { status: nextStatus, finishedAt: finishedAtFor(entry, nextStatus) },
+        data: {
+          status: nextStatus,
+          finishedAt: finishedAtFor(entry, nextStatus),
+          ...(savesOverride ? { pageCountOverride: pageCount } : {}),
+        },
       });
     }
 
