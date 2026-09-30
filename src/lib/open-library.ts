@@ -3,7 +3,7 @@ import { pickSubjects } from "@/lib/subjects";
 
 export type SearchField = "all" | "title" | "author";
 
-export const SEARCH_PAGE_SIZE = 5;
+export const SEARCH_PAGE_SIZE = 10;
 export const DESKTOP_SEARCH_PAGE_SIZE = 18;
 
 export function resolveSearchPageSize(pageSize?: number) {

@@ -6,9 +6,11 @@ import { useState } from "react";
 export function FollowButton({
   userId,
   initialFollowing,
+  size = "md",
 }: {
   userId: string;
   initialFollowing: boolean;
+  size?: "sm" | "md";
 }) {
   const router = useRouter();
   const [following, setFollowing] = useState(initialFollowing);
@@ -33,16 +35,16 @@ export function FollowButton({
     }
   }
 
+  const box = size === "sm" ? "px-3.5 py-1.5 text-xs" : "px-4 py-2 text-sm";
+
   return (
     <button
       type="button"
       disabled={busy}
       onClick={() => void toggle()}
-      className={
-        following
-          ? "rounded-full border border-beige px-4 py-2 text-sm font-medium text-espresso disabled:opacity-50"
-          : "rounded-full bg-deep-brown px-4 py-2 text-sm font-medium text-ivory disabled:opacity-50"
-      }
+      className={`shrink-0 rounded-full border font-medium disabled:opacity-50 ${box} ${
+        following ? "border-beige text-espresso" : "border-deep-brown bg-deep-brown text-ivory"
+      }`}
     >
       {following ? "Following" : "Follow"}
     </button>
