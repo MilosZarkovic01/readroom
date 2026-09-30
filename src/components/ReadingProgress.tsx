@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { notify } from "@/components/AppToaster";
 import type { ReadingStatus } from "@prisma/client";
 import type { BadgeAward } from "@/lib/badges";
 import { readUnlockedFromApi } from "@/lib/badges";
@@ -65,11 +66,11 @@ export function PageProgressForm({
   onSaved: (result: ProgressSaveResult) => void;
 }) {
   const [page, setPage] = useState(currentPage ? String(currentPage) : "");
-  const [total, setTotal] = useState("");
+  const [total, setTotal] = useState(pageCount ? String(pageCount) : "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const knownTotal = pageCount ?? (Number(total) > 0 ? Number(total) : null);
+  const knownTotal = Number(total) > 0 ? Number(total) : pageCount;
   const value = Number(page);
   const delta = page !== "" && Number.isFinite(value) ? value - (currentPage ?? 0) : 0;
 
@@ -87,7 +88,7 @@ export function PageProgressForm({
       const response = await fetch(`/api/library/${entryId}/progress`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ page: Number(page), totalPages: pageCount ? undefined : total || undefined }),
+        body: JSON.stringify({ page: Number(page), totalPages: total || undefined }),
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok) throw new Error(payload?.error ?? "Could not save your page.");
@@ -124,22 +125,19 @@ export function PageProgressForm({
             className={`mt-1.5 ${numberClass}`}
           />
         </label>
-        {pageCount ? (
-          <span className="pb-3.5 text-sm text-warm-gray">of {pageCount.toLocaleString("en-US")}</span>
-        ) : (
-          <label className="block w-28 shrink-0 text-sm font-medium text-espresso">
-            of
-            <input
-              type="number"
-              inputMode="numeric"
-              min={1}
-              placeholder="pages"
-              value={total}
-              onChange={(event) => setTotal(event.target.value)}
-              className={`mt-1.5 ${numberClass}`}
-            />
-          </label>
-        )}
+        <label className="block w-28 shrink-0 text-sm font-medium text-espresso">
+          of
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            required
+            placeholder="pages"
+            value={total}
+            onChange={(event) => setTotal(event.target.value)}
+            className={`mt-1.5 ${numberClass}`}
+          />
+        </label>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
@@ -169,10 +167,11 @@ export function PageProgressForm({
           ? `+${delta.toLocaleString("en-US")} pages since last time`
           : knownTotal && value >= knownTotal
             ? "Saving the last page marks the book as read."
-            : pageCount
-              ? null
-              : "Add the total once so we can show your progress."}
+            : !knownTotal
+              ? "Add the total for your edition so we can show your progress."
+              : null}
       </p>
+      <p className="mt-1 text-xs text-warm-gray">This total is only for your copy. It doesn&apos;t change the book for anyone else.</p>
 
       {error ? <p className="mt-2 text-sm text-terracotta">{error}</p> : null}
       <button
@@ -183,5 +182,64 @@ export function PageProgressForm({
         {busy ? "Saving..." : "Save page"}
       </button>
     </form>
+  );
+}
+
+export function EditionPageField({
+  entryId,
+  pageCount,
+  onSaved,
+}: {
+  entryId: string;
+  pageCount: number | null;
+  onSaved: (completed: GoalView[]) => void;
+}) {
+  const [total, setTotal] = useState(pageCount ? String(pageCount) : "");
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    setBusy(true);
+    try {
+      const response = await fetch(`/api/library/${entryId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pageCountOverride: total === "" ? null : Number(total) }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(payload?.error ?? "Could not save the page count.");
+      onSaved(readCompletedGoalsFromApi(payload));
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Could not save the page count.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mb-5">
+      <label className="block text-sm font-medium text-espresso">
+        Pages in your edition
+        <input
+          type="number"
+          inputMode="numeric"
+          min={1}
+          value={total}
+          onChange={(event) => setTotal(event.target.value)}
+          placeholder="Total pages"
+          className={`mt-1.5 ${numberClass}`}
+        />
+      </label>
+      <p className="mt-1.5 text-xs text-warm-gray">
+        Different editions can have different page counts. This stays on your shelf.
+      </p>
+      <button
+        type="button"
+        disabled={busy || total === String(pageCount ?? "")}
+        onClick={() => void save()}
+        className="mt-3 w-full rounded-full border border-beige py-2.5 text-sm font-medium text-walnut disabled:opacity-50"
+      >
+        {busy ? "Saving..." : "Save page count"}
+      </button>
+    </div>
   );
 }

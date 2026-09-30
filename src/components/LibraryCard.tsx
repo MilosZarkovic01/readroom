@@ -14,7 +14,8 @@ import { readCompletedGoalsFromApi, type GoalView } from "@/lib/goals";
 import { formatRating } from "@/lib/rating";
 import { STATUSES, STATUS_SHORT } from "@/lib/status";
 import { CategoryChips } from "@/components/CategoryChips";
-import { PageProgressBar, PageProgressForm, type ProgressSaveResult } from "@/components/ReadingProgress";
+import { confirmAction, notify } from "@/components/AppToaster";
+import { EditionPageField, PageProgressBar, PageProgressForm, type ProgressSaveResult } from "@/components/ReadingProgress";
 import { useBodyScrollLock } from "@/lib/use-body-scroll-lock";
 
 export type LibraryCardEntry = {
@@ -62,8 +63,10 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
         throw new Error(payload?.error ?? "Could not save your review.");
       }
       celebrateThenRefresh(readUnlockedFromApi(payload), readCompletedGoalsFromApi(payload));
+      return true;
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Could not save your review.");
+      notify(error instanceof Error ? error.message : "Could not save your review.");
+      return false;
     } finally {
       setBusy(false);
     }
@@ -96,13 +99,16 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
   }
 
   async function remove() {
-    if (!confirm(`Remove “${entry.book.title}” from your library?`)) return;
+    const accepted = await confirmAction(`Remove “${entry.book.title}” from your library?`);
+    if (!accepted) return;
     setBusy(true);
     try {
       const response = await fetch(`/api/library/${entry.id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("Remove failed");
+      if (!response.ok) throw new Error("Could not remove that book.");
       setOpen(false);
       router.refresh();
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Could not remove that book.");
     } finally {
       setBusy(false);
     }
@@ -164,20 +170,31 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
               <div className="mb-5">
                 <p className="mb-2 text-sm font-medium text-espresso">Reading progress</p>
                 <PageProgressForm
+                  key={entry.book.pageCount ?? "unknown"}
                   entryId={entry.id}
                   currentPage={entry.currentPage}
                   pageCount={entry.book.pageCount}
                   onSaved={progressSaved}
                 />
               </div>
-            ) : null}
+            ) : (
+              <EditionPageField
+                key={entry.book.pageCount ?? "unknown"}
+                entryId={entry.id}
+                pageCount={entry.book.pageCount}
+                onSaved={(completed) => celebrateThenRefresh([], completed)}
+              />
+            )}
             <CategoryChips subjects={entry.book.subjects} />
             <p className="mb-2 text-sm font-medium text-espresso">Status</p>
             <ShelfPicker
               value={status}
+              from={entry.status}
               onChange={(next) => {
                 setStatus(next);
-                void patch({ status: next });
+                void patch({ status: next }).then((saved) => {
+                  if (!saved) setStatus(entry.status);
+                });
               }}
             />
             <p className="mt-5 mb-2 text-sm font-medium text-espresso">Rating</p>

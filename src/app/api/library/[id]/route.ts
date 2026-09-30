@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import type { ReadingStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { STATUSES } from "@/lib/status";
+import { isForwardStatusMove, STATUSES } from "@/lib/status";
 import { isValidRating } from "@/lib/rating";
 import { unlockEarnedBadges } from "@/lib/unlock-badges";
-import { finishedAtFor } from "@/lib/goals";
+import { finishedAtFor, goalsToCelebrate } from "@/lib/goals";
 import { listGoalsWithProgress } from "@/lib/reading-goals";
 import { saveReadingProgress } from "@/lib/reading-progress";
-import { entryPageCount } from "@/lib/progress";
+import { MAX_PAGES, entryPageCount, parsePage } from "@/lib/progress";
 
 const STATUSES_SET = new Set<ReadingStatus>(STATUSES);
 
@@ -28,6 +28,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     rating?: number | null;
     review?: string | null;
     finishedAt?: Date | null;
+    pageCountOverride?: number | null;
   } = {};
 
   if (body?.status !== undefined) {
@@ -54,18 +55,48 @@ export async function PATCH(request: Request, context: RouteContext) {
     data.review = body.review == null ? null : String(body.review).slice(0, 500).trim() || null;
   }
 
+  if (body?.pageCountOverride !== undefined) {
+    if (body.pageCountOverride === null || body.pageCountOverride === "") {
+      data.pageCountOverride = null;
+    } else {
+      const total = parsePage(body.pageCountOverride, MAX_PAGES);
+      if (!total) {
+        return NextResponse.json({ error: "Enter the book's total pages as a whole number." }, { status: 400 });
+      }
+      data.pageCountOverride = total;
+    }
+  }
+
   const existing = await prisma.libraryEntry.findFirst({
     where: { id, userId: session.user.id },
+    include: { book: { select: { pageCount: true } } },
   });
   if (!existing) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
+  }
+
+  if (data.status !== undefined && !isForwardStatusMove(existing.status, data.status)) {
+    return NextResponse.json(
+      { error: "Books move from Want to read, to Currently reading, to Read." },
+      { status: 400 },
+    );
+  }
+
+  if (data.pageCountOverride != null && data.pageCountOverride === existing.book.pageCount) {
+    data.pageCountOverride = null;
   }
 
   if (data.status !== undefined) {
     data.finishedAt = finishedAtFor(existing, data.status);
   }
 
+  const overrideChanged =
+    data.pageCountOverride !== undefined && data.pageCountOverride !== existing.pageCountOverride;
+  const nextStatus = data.status ?? existing.status;
+  const affectsGoals = nextStatus === "READ" && (existing.status !== "READ" || overrideChanged);
+
   try {
+    const before = affectsGoals ? await listGoalsWithProgress(session.user.id, { persist: false }) : null;
     const entry = await prisma.libraryEntry.update({
       where: { id },
       data,
@@ -73,13 +104,16 @@ export async function PATCH(request: Request, context: RouteContext) {
     });
 
     const pageCount = entryPageCount(entry);
-    if (data.status === "READ" && existing.status !== "READ" && pageCount) {
+    if (pageCount && affectsGoals) {
       await saveReadingProgress(session.user.id, entry.id, pageCount);
     }
 
     const unlocked = await unlockEarnedBadges(session.user.id);
+    const after = affectsGoals ? await listGoalsWithProgress(session.user.id) : null;
     const completedGoals =
-      data.status === "READ" ? (await listGoalsWithProgress(session.user.id)).newlyCompleted : [];
+      before && after
+        ? goalsToCelebrate([...before.active, ...before.completed, ...before.ended], after)
+        : [];
 
     return NextResponse.json({ entry, unlocked, completedGoals });
   } catch (error) {

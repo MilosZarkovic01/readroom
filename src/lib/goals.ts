@@ -70,6 +70,27 @@ export type GoalLists = {
   ended: GoalView[];
 };
 
+/** Goals that just reached their target, including a recurring goal met for the first time this period. */
+export function goalsToCelebrate(before: GoalView[], after: GoalLists & { newlyCompleted: GoalView[] }): GoalView[] {
+  const already = new Set(
+    before.filter((goal) => goal.progress.done || goal.progress.metThisPeriod).map((goal) => goal.id),
+  );
+  const seen = new Set<string>();
+  const result: GoalView[] = [];
+  for (const goal of after.newlyCompleted) {
+    seen.add(goal.id);
+    result.push(goal);
+  }
+  for (const goal of [...after.active, ...after.completed]) {
+    if (seen.has(goal.id) || goal.period === "TOTAL" || already.has(goal.id)) continue;
+    if (goal.progress.metThisPeriod) {
+      seen.add(goal.id);
+      result.push(goal);
+    }
+  }
+  return result;
+}
+
 export function readCompletedGoalsFromApi(payload: unknown): GoalView[] {
   if (!payload || typeof payload !== "object" || !("completedGoals" in payload)) return [];
   const goals = (payload as { completedGoals?: unknown }).completedGoals;

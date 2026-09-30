@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { confirmAction, notify } from "@/components/AppToaster";
+import { GoalCompleteModal } from "@/components/GoalCompleteModal";
 import {
   IconBookMark,
   IconChevron,
@@ -19,6 +20,7 @@ import {
   motivationLine,
   periodNowLabel,
   streakLabel,
+  readCompletedGoalsFromApi,
   type GoalLists,
   type GoalPeriod,
   type GoalType,
@@ -201,7 +203,13 @@ function GoalRow({
   );
 }
 
-function AddGoalForm({ shelfBooks, onCreated }: { shelfBooks: GoalShelfBook[]; onCreated: () => void }) {
+function AddGoalForm({
+  shelfBooks,
+  onCreated,
+}: {
+  shelfBooks: GoalShelfBook[];
+  onCreated: (completed: GoalView[]) => void;
+}) {
   const [type, setType] = useState<GoalType>("PAGE_COUNT");
   const [period, setPeriod] = useState<GoalPeriod>("DAILY");
   const [target, setTarget] = useState(DEFAULT_TARGETS.PAGE_COUNT.DAILY);
@@ -246,7 +254,7 @@ function AddGoalForm({ shelfBooks, onCreated }: { shelfBooks: GoalShelfBook[]; o
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok) throw new Error(payload?.error ?? "Could not save your goal.");
-      onCreated();
+      onCreated(readCompletedGoalsFromApi(payload));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save your goal.");
     } finally {
@@ -259,8 +267,7 @@ function AddGoalForm({ shelfBooks, onCreated }: { shelfBooks: GoalShelfBook[]; o
   const targetSuffix = period === "DAILY" ? "a day" : period === "WEEKLY" ? "a week" : "in total";
 
   return (
-    <form onSubmit={submit} className="space-y-4 rounded-2xl border border-beige bg-ivory p-4">
-      <p className="font-medium text-espresso">New goal</p>
+    <form onSubmit={submit} className="space-y-4">
       <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Goal type">
         {TYPE_OPTIONS.map((option) => (
           <button
@@ -412,23 +419,24 @@ export function GoalsCard({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [celebrating, setCelebrating] = useState<GoalView[]>([]);
   const [busy, setBusy] = useState(false);
   useBodyScrollLock(open);
   const past = [...goals.completed, ...goals.ended];
   const canAdd = editable && goals.active.length < MAX_ACTIVE_GOALS;
   const bookGoalIds = new Set(goals.active.flatMap((goal) => (goal.bookId ? [goal.bookId] : [])));
   const availableBooks = shelfBooks.filter((book) => !bookGoalIds.has(book.id));
-  const hasPageGoal = goals.active.some((goal) => goal.type === "PAGE_COUNT");
 
   async function remove(goal: GoalView) {
-    if (!confirm(`Remove the goal “${goalTitle(goal)}”?`)) return;
+    const accepted = await confirmAction(`Remove the goal “${goalTitle(goal)}”?`);
+    if (!accepted) return;
     setBusy(true);
     try {
       const response = await fetch(`/api/goals/${goal.id}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("Remove failed");
+      if (!response.ok) throw new Error("Could not remove that goal.");
       router.refresh();
-    } catch {
-      alert("Could not remove that goal.");
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "Could not remove that goal.");
     } finally {
       setBusy(false);
     }
@@ -438,10 +446,7 @@ export function GoalsCard({
     <>
       <button
         type="button"
-        onClick={() => {
-          setOpen(true);
-          setAdding(editable && goals.active.length === 0 && past.length === 0);
-        }}
+        onClick={() => setOpen(true)}
         className="flex w-full items-center gap-3 rounded-2xl border border-beige bg-ivory px-3 py-3 text-left lg:w-fit lg:gap-2.5 lg:px-2.5 lg:py-2"
       >
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-dusty-peach/35 text-deep-brown lg:h-10 lg:w-10">
@@ -484,26 +489,9 @@ export function GoalsCard({
               </ul>
             ) : null}
 
-            {editable && hasPageGoal ? (
-              <Link
-                href="/library?shelf=READING"
-                className="mt-3 block rounded-2xl bg-cream px-3 py-2.5 text-center text-sm font-medium text-walnut"
-              >
-                Log today&apos;s pages
-              </Link>
-            ) : null}
-
             {editable ? (
               <div className="mt-4">
-                {adding ? (
-                  <AddGoalForm
-                    shelfBooks={availableBooks}
-                    onCreated={() => {
-                      setAdding(false);
-                      router.refresh();
-                    }}
-                  />
-                ) : canAdd ? (
+                {canAdd ? (
                   <button
                     type="button"
                     onClick={() => setAdding(true)}
@@ -533,6 +521,36 @@ export function GoalsCard({
             ) : null}
           </div>
         </div>
+      ) : null}
+
+      {adding ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-espresso/35 lg:items-center lg:p-6">
+          <div className="max-h-[92dvh] w-full max-w-[430px] overflow-y-auto overscroll-contain rounded-t-3xl bg-ivory px-5 pb-8 pt-4 text-left lg:max-h-[min(85vh,760px)] lg:max-w-lg lg:rounded-3xl lg:shadow-[0_24px_80px_rgba(45,33,27,0.18)]">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-serif text-2xl text-espresso">New goal</h2>
+              <button
+                type="button"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-cream"
+                onClick={() => setAdding(false)}
+                aria-label="Close"
+              >
+                <IconClose className="h-4 w-4" />
+              </button>
+            </div>
+            <AddGoalForm
+              shelfBooks={availableBooks}
+              onCreated={(completed) => {
+                setAdding(false);
+                if (completed.length) setCelebrating(completed);
+                router.refresh();
+              }}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {celebrating.length ? (
+        <GoalCompleteModal goals={celebrating} onDone={() => setCelebrating([])} />
       ) : null}
     </>
   );

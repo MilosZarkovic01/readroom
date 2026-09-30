@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { validateGoalInput } from "@/lib/goals";
+import { goalsToCelebrate, validateGoalInput } from "@/lib/goals";
 import { listGoalsWithProgress } from "@/lib/reading-goals";
 
 export async function GET() {
@@ -40,7 +40,9 @@ export async function POST(request: Request) {
 
   try {
     const goal = await prisma.readingGoal.create({ data: { userId, ...result.value } });
-    return NextResponse.json({ goal }, { status: 201 });
+    const after = await listGoalsWithProgress(userId);
+    const completedGoals = goalsToCelebrate([], after).filter((item) => item.id === goal.id);
+    return NextResponse.json({ goal, completedGoals }, { status: 201 });
   } catch (error) {
     console.error("Failed to create reading goal", error);
     return NextResponse.json({ error: "Could not save your goal. Try again." }, { status: 500 });

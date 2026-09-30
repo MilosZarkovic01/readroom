@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { BadgeConfetti } from "@/components/BadgeConfetti";
 import { IconTarget } from "@/components/Icons";
-import { goalTitle, type GoalView } from "@/lib/goals";
+import { goalTitle, motivationLine, type GoalView } from "@/lib/goals";
 
 export function GoalCompleteModal({ goals, onDone }: { goals: GoalView[]; onDone: () => void }) {
   const [index, setIndex] = useState(0);
@@ -18,7 +18,7 @@ export function GoalCompleteModal({ goals, onDone }: { goals: GoalView[]; onDone
   const last = index === goals.length - 1;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/40 px-6">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-espresso/40 px-6">
       <div
         role="dialog"
         aria-labelledby="goal-complete-title"
@@ -36,7 +36,9 @@ export function GoalCompleteModal({ goals, onDone }: { goals: GoalView[]; onDone
         <h2 id="goal-complete-title" className="mt-5 font-serif text-3xl text-espresso">
           {goalTitle(goal)}
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-warm-gray">You did it. Time to set the next one.</p>
+        <p className="mt-2 text-sm leading-relaxed text-warm-gray">
+          {motivationLine(goal.type, goal.progress, goal.period)}
+        </p>
         {goals.length > 1 ? (
           <p className="mt-3 text-xs text-walnut">
             {index + 1} of {goals.length}

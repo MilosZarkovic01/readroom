@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { ReadingStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { finishedAtFor } from "@/lib/goals";
+import { finishedAtFor, goalsToCelebrate } from "@/lib/goals";
 import { MAX_PAGES, entryPageCount, parsePage } from "@/lib/progress";
 import { listGoalsWithProgress } from "@/lib/reading-goals";
 import { saveReadingProgress } from "@/lib/reading-progress";
@@ -28,14 +28,18 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
-  let pageCount = entryPageCount(entry);
-  if (pageCount == null && body?.totalPages != null && body.totalPages !== "") {
+  let suppliedTotal: number | null = null;
+  if (body?.totalPages != null && body.totalPages !== "") {
     const total = parsePage(body.totalPages, MAX_PAGES);
     if (!total) {
       return NextResponse.json({ error: "Enter the book's total pages as a whole number." }, { status: 400 });
     }
-    pageCount = total;
+    suppliedTotal = total;
   }
+
+  const pageCount = suppliedTotal ?? entryPageCount(entry);
+  const storedOverride = suppliedTotal == null ? undefined : suppliedTotal === entry.book.pageCount ? null : suppliedTotal;
+  const overrideUpdate = storedOverride !== undefined && storedOverride !== entry.pageCountOverride ? storedOverride : undefined;
 
   const max = pageCount ?? MAX_PAGES;
   const page = parsePage(body?.page, max);
@@ -50,38 +54,38 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
-  const finished = pageCount != null && page >= pageCount;
+  const finished = pageCount != null && page >= pageCount && entry.status === "READING";
   let nextStatus: ReadingStatus = entry.status;
-  if (finished) nextStatus = "READ";
-  else if (page > 0 && entry.status === "WANT_TO_READ") nextStatus = "READING";
+  if (page > 0 && entry.status === "WANT_TO_READ") nextStatus = "READING";
+  else if (finished) nextStatus = "READ";
 
   try {
-    const savesOverride = pageCount != null && pageCount !== entryPageCount(entry);
-    // #region agent log
-    fetch('http://127.0.0.1:7866/ingest/799abf13-21c8-4bf6-b833-707b1ff5f96f',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cffb3a'},body:JSON.stringify({sessionId:'cffb3a',runId:'post-fix',hypothesisId:'CR',location:'progress/route.ts:save',message:'page count source',data:{bookPageCount:entry.book.pageCount,override:entry.pageCountOverride,pageCount,savesOverride,page},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-    await saveReadingProgress(userId, entry.id, page);
-    if (nextStatus !== entry.status || savesOverride) {
-      await prisma.libraryEntry.update({
-        where: { id: entry.id },
-        data: {
-          status: nextStatus,
-          finishedAt: finishedAtFor(entry, nextStatus),
-          ...(savesOverride ? { pageCountOverride: pageCount } : {}),
-        },
-      });
-    }
+    const before = await listGoalsWithProgress(userId, { persist: false });
+    await prisma.$transaction(async (tx) => {
+      await saveReadingProgress(userId, entry.id, page, tx);
+      if (nextStatus !== entry.status || overrideUpdate !== undefined) {
+        await tx.libraryEntry.update({
+          where: { id: entry.id },
+          data: {
+            ...(nextStatus !== entry.status
+              ? { status: nextStatus, finishedAt: finishedAtFor(entry, nextStatus) }
+              : {}),
+            ...(overrideUpdate !== undefined ? { pageCountOverride: overrideUpdate } : {}),
+          },
+        });
+      }
+    });
 
     const unlocked = nextStatus !== entry.status ? await unlockEarnedBadges(userId) : [];
-    const { newlyCompleted } = await listGoalsWithProgress(userId);
+    const after = await listGoalsWithProgress(userId);
 
     return NextResponse.json({
       currentPage: page,
       pageCount,
       status: nextStatus,
-      finished: finished && entry.status !== "READ",
+      finished,
       unlocked,
-      completedGoals: newlyCompleted,
+      completedGoals: goalsToCelebrate([...before.active, ...before.completed, ...before.ended], after),
     });
   } catch (error) {
     console.error("Failed to save reading progress", error);

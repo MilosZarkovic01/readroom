@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import {
   computeGoalProgress,
   finishedAtFor,
+  goalsToCelebrate,
   goalTitle,
   MAX_ACTIVE_GOALS,
   motivationLine,
@@ -9,6 +10,7 @@ import {
   type GoalEntrySnapshot,
   type GoalLogSnapshot,
   type GoalRecord,
+  type GoalView,
 } from "../../src/lib/goals";
 
 const now = new Date("2026-06-15T12:00:00.000Z");
@@ -243,4 +245,35 @@ test("validates the timeframe", () => {
 test("limits the number of active goals", () => {
   const result = validateGoalInput({ type: "BOOK_COUNT", target: 3 }, { ...context, activeCount: MAX_ACTIVE_GOALS });
   expect(result).toEqual({ ok: false, error: `You can have up to ${MAX_ACTIVE_GOALS} active goals.` });
+});
+
+function dailyView(met: boolean): GoalView {
+  return {
+    id: "daily",
+    type: "PAGE_COUNT",
+    period: "DAILY",
+    target: 20,
+    bookId: null,
+    bookTitle: null,
+    startsAt: "2026-06-15T00:00:00.000Z",
+    endsAt: null,
+    completedAt: null,
+    progress: {
+      current: met ? 20 : 10,
+      target: 20,
+      percent: met ? 100 : 50,
+      done: false,
+      expired: false,
+      daysLeft: null,
+      metThisPeriod: met,
+      streak: met ? 1 : 0,
+      bestStreak: 1,
+    },
+  };
+}
+
+test("celebrates a daily goal the first time it is met", () => {
+  const lists = { active: [dailyView(true)], completed: [], ended: [], newlyCompleted: [] };
+  expect(goalsToCelebrate([dailyView(false)], lists).map((goal) => goal.id)).toEqual(["daily"]);
+  expect(goalsToCelebrate([dailyView(true)], lists)).toEqual([]);
 });

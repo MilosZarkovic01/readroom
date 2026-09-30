@@ -1,5 +1,8 @@
+import type { Prisma, PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { planProgressUpdate } from "@/lib/progress";
+
+type ProgressDb = Prisma.TransactionClient | PrismaClient;
 
 export async function currentPagesFor(entryIds: string[]): Promise<Map<string, number>> {
   if (entryIds.length === 0) return new Map();
@@ -12,19 +15,24 @@ export async function currentPagesFor(entryIds: string[]): Promise<Map<string, n
   return new Map(logs.map((log) => [log.entryId, log.page]));
 }
 
-export async function saveReadingProgress(userId: string, entryId: string, page: number) {
-  const latest = await prisma.readingLog.findFirst({
+export async function saveReadingProgress(
+  userId: string,
+  entryId: string,
+  page: number,
+  db: ProgressDb = prisma,
+) {
+  const latest = await db.readingLog.findFirst({
     where: { entryId },
     orderBy: { createdAt: "desc" },
     select: { id: true, page: true, pagesRead: true },
   });
   const plan = planProgressUpdate(latest, page);
   if (plan.kind === "create") {
-    await prisma.readingLog.create({
+    await db.readingLog.create({
       data: { userId, entryId, page: plan.page, pagesRead: plan.pagesRead },
     });
   } else if (plan.kind === "update") {
-    await prisma.readingLog.update({
+    await db.readingLog.update({
       where: { id: plan.id },
       data: { page: plan.page, pagesRead: plan.pagesRead },
     });

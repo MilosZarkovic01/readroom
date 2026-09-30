@@ -3,6 +3,7 @@ import { computeGoalProgress, type GoalLists, type GoalView } from "@/lib/goals"
 
 export async function listGoalsWithProgress(
   userId: string,
+  options?: { persist?: boolean },
 ): Promise<GoalLists & { newlyCompleted: GoalView[] }> {
   const goals = await prisma.readingGoal.findMany({
     where: { userId },
@@ -47,7 +48,7 @@ export async function listGoalsWithProgress(
     if (!goal.completedAt && progress.done) newlyCompleted.push(view);
   }
 
-  if (newlyCompleted.length > 0) {
+  if (options?.persist !== false && newlyCompleted.length > 0) {
     await prisma.readingGoal.updateMany({
       where: { id: { in: newlyCompleted.map((goal) => goal.id) }, completedAt: null },
       data: { completedAt: now },

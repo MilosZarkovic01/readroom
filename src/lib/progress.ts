@@ -32,9 +32,9 @@ export function parsePage(value: unknown, max: number): number | null {
   return page;
 }
 
-/** The reader's own total only fills in for books whose shared page count is unknown. */
+/** A reader's edition total wins over the shared catalog count. The catalog value stays unchanged. */
 export function entryPageCount(entry: { pageCountOverride: number | null; book: { pageCount: number | null } }) {
-  return entry.book.pageCount ?? entry.pageCountOverride;
+  return entry.pageCountOverride ?? entry.book.pageCount;
 }
 
 export function progressPercent(currentPage: number | null, pageCount: number | null) {
