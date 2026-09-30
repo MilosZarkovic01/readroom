@@ -102,6 +102,16 @@ export function IconOpenBook({ className }: { className?: string }) {
   );
 }
 
+export function IconTarget({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <circle cx="12" cy="12" r="7.5" />
+      <circle cx="12" cy="12" r="3.5" />
+      <circle cx="12" cy="12" r="0.8" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function IconChevron({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">

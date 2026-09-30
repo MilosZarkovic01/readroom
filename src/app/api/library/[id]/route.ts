@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { STATUSES } from "@/lib/status";
 import { isValidRating } from "@/lib/rating";
 import { unlockEarnedBadges } from "@/lib/unlock-badges";
+import { finishedAtFor } from "@/lib/goals";
+import { listGoalsWithProgress } from "@/lib/reading-goals";
 
 const STATUSES_SET = new Set<ReadingStatus>(STATUSES);
 
@@ -19,7 +21,12 @@ export async function PATCH(request: Request, context: RouteContext) {
   const { id } = await context.params;
   const body = await request.json().catch(() => null);
 
-  const data: { status?: ReadingStatus; rating?: number | null; review?: string | null } = {};
+  const data: {
+    status?: ReadingStatus;
+    rating?: number | null;
+    review?: string | null;
+    finishedAt?: Date | null;
+  } = {};
 
   if (body?.status !== undefined) {
     if (!STATUSES_SET.has(body.status)) {
@@ -52,6 +59,10 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Not found." }, { status: 404 });
   }
 
+  if (data.status !== undefined) {
+    data.finishedAt = finishedAtFor(existing, data.status);
+  }
+
   try {
     const entry = await prisma.libraryEntry.update({
       where: { id },
@@ -60,8 +71,10 @@ export async function PATCH(request: Request, context: RouteContext) {
     });
 
     const unlocked = await unlockEarnedBadges(session.user.id);
+    const completedGoals =
+      data.status === "READ" ? (await listGoalsWithProgress(session.user.id)).newlyCompleted : [];
 
-    return NextResponse.json({ entry, unlocked });
+    return NextResponse.json({ entry, unlocked, completedGoals });
   } catch (error) {
     console.error("Failed to update library entry", error);
     return NextResponse.json({ error: "Could not save your review. Try again." }, { status: 500 });

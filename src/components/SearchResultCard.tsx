@@ -9,7 +9,9 @@ import { CategoryChips } from "@/components/CategoryChips";
 import { IconChevron, IconClose } from "@/components/Icons";
 import { ShelfPicker } from "@/components/ShelfPicker";
 import { StarRating } from "@/components/StarRating";
+import { GoalCompleteModal } from "@/components/GoalCompleteModal";
 import { readUnlockedFromApi, type BadgeAward } from "@/lib/badges";
+import { readCompletedGoalsFromApi, type GoalView } from "@/lib/goals";
 import { STATUS_LABELS } from "@/lib/status";
 import type { OpenLibraryBook } from "@/lib/open-library";
 
@@ -31,6 +33,12 @@ export function SearchResultCard({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unlocked, setUnlocked] = useState<BadgeAward[]>([]);
+  const [completedGoals, setCompletedGoals] = useState<GoalView[]>([]);
+
+  function goToShelf() {
+    router.push(`/library?shelf=${status}`);
+    router.refresh();
+  }
 
   async function add() {
     setBusy(true);
@@ -59,14 +67,15 @@ export function SearchResultCard({
       }
       const payload = await response.json().catch(() => null);
       const awards = readUnlockedFromApi(payload);
+      const goals = readCompletedGoalsFromApi(payload);
       setOwned(status);
       setStep("closed");
-      if (awards.length) {
+      if (awards.length || goals.length) {
         setUnlocked(awards);
+        setCompletedGoals(goals);
         return;
       }
-      router.push(`/library?shelf=${status}`);
-      router.refresh();
+      goToShelf();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not add book");
     } finally {
@@ -180,8 +189,15 @@ export function SearchResultCard({
           badges={unlocked}
           onDone={() => {
             setUnlocked([]);
-            router.push(`/library?shelf=${status}`);
-            router.refresh();
+            if (!completedGoals.length) goToShelf();
+          }}
+        />
+      ) : completedGoals.length ? (
+        <GoalCompleteModal
+          goals={completedGoals}
+          onDone={() => {
+            setCompletedGoals([]);
+            goToShelf();
           }}
         />
       ) : null}

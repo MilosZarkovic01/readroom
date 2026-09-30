@@ -8,7 +8,9 @@ import { BookCover } from "@/components/BookCover";
 import { IconChevron, IconClose } from "@/components/Icons";
 import { ShelfPicker } from "@/components/ShelfPicker";
 import { StarRating } from "@/components/StarRating";
+import { GoalCompleteModal } from "@/components/GoalCompleteModal";
 import { readUnlockedFromApi, type BadgeAward } from "@/lib/badges";
+import { readCompletedGoalsFromApi, type GoalView } from "@/lib/goals";
 import { formatRating } from "@/lib/rating";
 import { STATUSES, STATUS_SHORT } from "@/lib/status";
 import { CategoryChips } from "@/components/CategoryChips";
@@ -36,6 +38,7 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
   const [rating, setRating] = useState<number | null>(entry.rating);
   const [review, setReview] = useState(entry.review ?? "");
   const [unlocked, setUnlocked] = useState<BadgeAward[]>([]);
+  const [completedGoals, setCompletedGoals] = useState<GoalView[]>([]);
 
   async function patch(body: {
     status?: ReadingStatus;
@@ -54,9 +57,11 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
         throw new Error(payload?.error ?? "Could not save your review.");
       }
       const awards = readUnlockedFromApi(payload);
-      if (awards.length) {
+      const goals = readCompletedGoalsFromApi(payload);
+      if (awards.length || goals.length) {
         setOpen(false);
         setUnlocked(awards);
+        setCompletedGoals(goals);
       }
       router.refresh();
     } catch (error) {
@@ -166,6 +171,8 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
       ) : null}
       {unlocked.length ? (
         <BadgeUnlockModal badges={unlocked} onDone={() => setUnlocked([])} />
+      ) : completedGoals.length ? (
+        <GoalCompleteModal goals={completedGoals} onDone={() => setCompletedGoals([])} />
       ) : null}
     </>
   );

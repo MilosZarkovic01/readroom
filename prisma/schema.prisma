@@ -13,6 +13,12 @@ enum ReadingStatus {
   READ
 }
 
+enum GoalType {
+  BOOK
+  BOOK_COUNT
+  PAGE_COUNT
+}
+
 model User {
   id              String             @id @default(cuid())
   email           String             @unique
@@ -29,6 +35,7 @@ model User {
   notifications       Notification[]     @relation("Notifications")
   actedNotifications  Notification[]     @relation("NotificationActor")
   badges              UserBadge[]
+  goals               ReadingGoal[]
 }
 
 model Follow {
@@ -101,6 +108,7 @@ model Book {
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   library           LibraryEntry[]
+  goals             ReadingGoal[]
 }
 
 model LibraryEntry {
@@ -110,6 +118,7 @@ model LibraryEntry {
   status    ReadingStatus
   rating    Float?
   review    String?
+  finishedAt DateTime?
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -130,6 +139,22 @@ model UserBadge {
 
   @@unique([userId, badgeKey])
   @@index([userId, unlockedAt])
+}
+
+model ReadingGoal {
+  id          String    @id @default(cuid())
+  userId      String
+  type        GoalType
+  target      Int?
+  bookId      String?
+  startsAt    DateTime  @default(now())
+  endsAt      DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book        Book?     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([userId, completedAt])
 }
 
 model PasswordReset {

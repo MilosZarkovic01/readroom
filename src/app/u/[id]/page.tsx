@@ -10,6 +10,8 @@ import { BadgeCollection } from "@/components/BadgeCollection";
 import { ProfileStats } from "@/components/ProfileStats";
 import { displayName } from "@/lib/social";
 import { listUnlockedBadges } from "@/lib/unlock-badges";
+import { GoalsCard, GoalsStrip } from "@/components/GoalsCard";
+import { listGoalsWithProgress } from "@/lib/reading-goals";
 
 export default async function PublicProfilePage({
   params,
@@ -26,7 +28,8 @@ export default async function PublicProfilePage({
   });
   if (!user) notFound();
 
-  const [readCount, followerCount, followingCount, follow, entries, badges] =
+  const own = session.user.id === id;
+  const [readCount, followerCount, followingCount, follow, entries, badges, goals, shelfEntries] =
     await Promise.all([
       prisma.libraryEntry.count({ where: { userId: id, status: "READ" } }),
       prisma.follow.count({ where: { followingId: id } }),
@@ -51,10 +54,17 @@ export default async function PublicProfilePage({
         take: 30,
       }),
       listUnlockedBadges(id),
+      listGoalsWithProgress(id),
+      own
+        ? prisma.libraryEntry.findMany({
+            where: { userId: id, status: { in: ["WANT_TO_READ", "READING"] } },
+            select: { book: { select: { id: true, title: true } } },
+            orderBy: { updatedAt: "desc" },
+          })
+        : Promise.resolve([]),
     ]);
 
   const name = displayName(user);
-  const own = session.user.id === id;
 
   return (
     <AppShell>
@@ -78,9 +88,15 @@ export default async function PublicProfilePage({
           />
         </div>
       </div>
-      <div className="w-full">
+      <div className="mt-6 flex w-full flex-col gap-3 lg:mt-8 lg:flex-row">
         <BadgeCollection badges={badges} />
+        <GoalsCard
+          goals={goals}
+          editable={own}
+          shelfBooks={shelfEntries.map((entry) => entry.book)}
+        />
       </div>
+      <GoalsStrip goals={goals.active} />
       <h2 className="mt-8 text-base font-medium lg:mt-10">Reading activity</h2>
       {entries.length === 0 ? (
         <p className="pt-8 text-center text-sm text-warm-gray">No activity yet.</p>

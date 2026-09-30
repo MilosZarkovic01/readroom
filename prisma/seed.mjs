@@ -92,6 +92,7 @@ async function main() {
       status: "READ",
       rating: 4.5,
       review: "Lush, theatrical, and impossible to put down.",
+      finishedAt: new Date(),
     },
   });
   await prisma.libraryEntry.upsert({
@@ -108,6 +109,7 @@ async function main() {
       status: "READ",
       rating: 5,
       review: "Quiet and strange in the best way.",
+      finishedAt: new Date(),
     },
   });
   await prisma.libraryEntry.upsert({

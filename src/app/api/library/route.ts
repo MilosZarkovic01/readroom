@@ -7,6 +7,8 @@ import { isValidRating } from "@/lib/rating";
 import { parsePageCount } from "@/lib/badges";
 import { pickSubjects, serializeSubjects } from "@/lib/subjects";
 import { unlockEarnedBadges } from "@/lib/unlock-badges";
+import { finishedAtFor } from "@/lib/goals";
+import { listGoalsWithProgress } from "@/lib/reading-goals";
 
 const STATUSES_SET = new Set<ReadingStatus>(STATUSES);
 
@@ -84,19 +86,26 @@ export async function POST(request: Request) {
       },
     });
 
+    const where = { userId_bookId: { userId: session.user.id, bookId: book.id } };
+    const previous = await prisma.libraryEntry.findUnique({
+      where,
+      select: { status: true, finishedAt: true },
+    });
+    const finishedAt = finishedAtFor(previous, status);
+
     const entry = await prisma.libraryEntry.upsert({
-      where: {
-        userId_bookId: { userId: session.user.id, bookId: book.id },
-      },
+      where,
       create: {
         userId: session.user.id,
         bookId: book.id,
         status,
         rating: rating ?? null,
         review: review ?? null,
+        finishedAt,
       },
       update: {
         status,
+        finishedAt,
         ...(rating !== undefined ? { rating } : {}),
         ...(review !== undefined ? { review } : {}),
       },
@@ -104,8 +113,10 @@ export async function POST(request: Request) {
     });
 
     const unlocked = await unlockEarnedBadges(session.user.id);
+    const completedGoals =
+      status === "READ" ? (await listGoalsWithProgress(session.user.id)).newlyCompleted : [];
 
-    return NextResponse.json({ entry, unlocked }, { status: 201 });
+    return NextResponse.json({ entry, unlocked, completedGoals }, { status: 201 });
   } catch (error) {
     console.error("Failed to add library book", error);
     return NextResponse.json({ error: "Could not add that book. Try again." }, { status: 500 });
