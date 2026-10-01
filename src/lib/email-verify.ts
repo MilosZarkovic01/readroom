@@ -90,21 +90,6 @@ async function tooManyRequests(email: string, ip: string) {
 
 export async function sendSignupVerification(email: string) {
   if (!isEmailConfigured()) {
-    // #region agent log
-    fetch("http://127.0.0.1:7866/ingest/799abf13-21c8-4bf6-b833-707b1ff5f96f", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a6ec37" },
-      body: JSON.stringify({
-        sessionId: "a6ec37",
-        runId: "preview-signup-mail",
-        hypothesisId: "C",
-        location: "src/lib/email-verify.ts:not-configured",
-        message: "signup mail skipped; SMTP not configured",
-        data: { vercelEnv: process.env.VERCEL_ENV || "" },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     return { error: "Verification email could not be sent. Try again later." };
   }
 
@@ -113,21 +98,6 @@ export async function sendSignupVerification(email: string) {
     select: { id: true, emailVerifiedAt: true },
   });
   if (!user) {
-    // #region agent log
-    fetch("http://127.0.0.1:7866/ingest/799abf13-21c8-4bf6-b833-707b1ff5f96f", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a6ec37" },
-      body: JSON.stringify({
-        sessionId: "a6ec37",
-        runId: "preview-signup-mail",
-        hypothesisId: "D",
-        location: "src/lib/email-verify.ts:no-user",
-        message: "signup mail skipped; user missing",
-        data: {},
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     return { error: "Your verification session expired. Register again." };
   }
   if (user.emailVerifiedAt) {
@@ -136,21 +106,6 @@ export async function sendSignupVerification(email: string) {
 
   const ip = await clientIp();
   if (await tooManyRequests(email, ip)) {
-    // #region agent log
-    fetch("http://127.0.0.1:7866/ingest/799abf13-21c8-4bf6-b833-707b1ff5f96f", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a6ec37" },
-      body: JSON.stringify({
-        sessionId: "a6ec37",
-        runId: "preview-signup-mail",
-        hypothesisId: "D",
-        location: "src/lib/email-verify.ts:rate-limit",
-        message: "signup mail skipped; rate limited",
-        data: {},
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     return { error: "Too many verification attempts. Try again in a few minutes." };
   }
 
@@ -170,25 +125,6 @@ export async function sendSignupVerification(email: string) {
 
   try {
     const sent = await sendEmail({ to: email, ...signupVerificationEmail(code) });
-    // #region agent log
-    fetch("http://127.0.0.1:7866/ingest/799abf13-21c8-4bf6-b833-707b1ff5f96f", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a6ec37" },
-      body: JSON.stringify({
-        sessionId: "a6ec37",
-        runId: "post-fix",
-        hypothesisId: "A",
-        location: "src/lib/email-verify.ts:sent",
-        message: "signup verification send returned",
-        data: {
-          vercelEnv: process.env.VERCEL_ENV || "",
-          readroomEnv: process.env.READROOM_ENV || "",
-          hasInboxUrl: Boolean(sent.inboxUrl),
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     await setPendingCookie(email, sent.inboxUrl);
     return { ok: true as const, inboxUrl: sent.inboxUrl };
   } catch (error) {
