@@ -164,8 +164,20 @@ model ReadingGoal {
   createdAt   DateTime  @default(now())
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   book        Book?     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  reminders   GoalReminder[]
 
   @@index([userId, completedAt])
+}
+
+model GoalReminder {
+  id        String      @id @default(cuid())
+  goalId    String
+  periodKey String
+  sentAt    DateTime    @default(now())
+  goal      ReadingGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@unique([goalId, periodKey])
+  @@index([sentAt])
 }
 
 model ReadingLog {
