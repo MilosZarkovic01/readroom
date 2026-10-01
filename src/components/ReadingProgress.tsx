@@ -52,7 +52,7 @@ export function PageProgressBar({
 const STEPS = [10, 25, 50];
 
 const numberClass =
-  "w-full min-w-0 rounded-2xl border border-beige bg-cream px-4 py-3 text-lg font-medium text-espresso outline-none focus:border-walnut";
+  "w-full min-w-0 rounded-xl border border-beige bg-cream px-3 py-2 text-sm font-medium text-espresso outline-none focus:border-walnut";
 
 export function PageProgressForm({
   entryId,
@@ -108,7 +108,7 @@ export function PageProgressForm({
   }
 
   return (
-    <form onSubmit={submit} className="rounded-2xl border border-beige bg-ivory p-4">
+    <form onSubmit={submit} className="rounded-2xl border border-beige bg-ivory p-3">
       <div className="flex items-end gap-2">
         <label className="block min-w-0 flex-1 text-sm font-medium text-espresso">
           I&apos;m on page
@@ -122,10 +122,10 @@ export function PageProgressForm({
             value={page}
             onChange={(event) => setPage(event.target.value)}
             onFocus={(event) => event.target.select()}
-            className={`mt-1.5 ${numberClass}`}
+            className={`mt-1 ${numberClass}`}
           />
         </label>
-        <label className="block w-28 shrink-0 text-sm font-medium text-espresso">
+        <label className="block w-24 shrink-0 text-sm font-medium text-espresso">
           of
           <input
             type="number"
@@ -135,18 +135,18 @@ export function PageProgressForm({
             placeholder="pages"
             value={total}
             onChange={(event) => setTotal(event.target.value)}
-            className={`mt-1.5 ${numberClass}`}
+            className={`mt-1 ${numberClass}`}
           />
         </label>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-2 flex flex-wrap gap-1.5">
         {STEPS.map((step) => (
           <button
             key={step}
             type="button"
             onClick={() => bump(step)}
-            className="rounded-full border border-beige px-3 py-1.5 text-xs font-medium text-walnut"
+            className="rounded-full border border-beige px-2.5 py-1 text-xs font-medium text-walnut"
           >
             +{step}
           </button>
@@ -155,14 +155,14 @@ export function PageProgressForm({
           <button
             type="button"
             onClick={() => setPage(String(knownTotal))}
-            className="rounded-full border border-beige px-3 py-1.5 text-xs font-medium text-walnut"
+            className="rounded-full border border-beige px-2.5 py-1 text-xs font-medium text-walnut"
           >
             Finished
           </button>
         ) : null}
       </div>
 
-      <p className="mt-3 min-h-4 text-xs text-warm-gray">
+      <p className="mt-2 min-h-4 text-xs text-warm-gray">
         {delta > 0
           ? `+${delta.toLocaleString("en-US")} pages since last time`
           : knownTotal && value >= knownTotal
@@ -172,11 +172,11 @@ export function PageProgressForm({
               : null}
       </p>
 
-      {error ? <p className="mt-2 text-sm text-terracotta">{error}</p> : null}
+      {error ? <p className="mt-1.5 text-sm text-terracotta">{error}</p> : null}
       <button
         type="submit"
         disabled={busy || page === ""}
-        className="mt-3 w-full rounded-full bg-deep-brown py-3 text-sm font-medium text-ivory disabled:opacity-50"
+        className="mt-2 w-full rounded-full bg-deep-brown py-2 text-sm font-medium text-ivory disabled:opacity-50"
       >
         {busy ? "Saving..." : "Save page"}
       </button>
@@ -215,7 +215,7 @@ export function EditionPageField({
   }
 
   return (
-    <div className="mb-5">
+    <div className="mb-4">
       <label className="block text-sm font-medium text-espresso">
         Pages in your edition
         <input
@@ -225,17 +225,17 @@ export function EditionPageField({
           value={total}
           onChange={(event) => setTotal(event.target.value)}
           placeholder="Total pages"
-          className={`mt-1.5 ${numberClass}`}
+          className={`mt-1 ${numberClass}`}
         />
       </label>
-      <p className="mt-1.5 text-xs text-warm-gray">
+      <p className="mt-1 text-xs text-warm-gray">
         Different editions can have different page counts. This stays on your shelf.
       </p>
       <button
         type="button"
         disabled={busy || total === String(pageCount ?? "")}
         onClick={() => void save()}
-        className="mt-3 w-full rounded-full border border-beige py-2.5 text-sm font-medium text-walnut disabled:opacity-50"
+        className="mt-2 w-full rounded-full border border-beige py-2 text-sm font-medium text-walnut disabled:opacity-50"
       >
         {busy ? "Saving..." : "Save page count"}
       </button>

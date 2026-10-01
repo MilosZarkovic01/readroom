@@ -17,6 +17,7 @@ type GoalRow = {
   target: number | null;
   bookId: string | null;
   startsAt: Date;
+  createdAt: Date;
   endsAt: Date | null;
   completedAt: Date | null;
   book: { title: string } | null;
