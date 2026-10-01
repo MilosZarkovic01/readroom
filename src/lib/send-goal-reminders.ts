@@ -28,6 +28,13 @@ function isUniqueConflict(error: unknown) {
   return typeof error === "object" && error !== null && "code" in error && error.code === "P2002";
 }
 
+async function releaseClaims(claimed: { goalId: string; periodKey: string }[]) {
+  if (claimed.length === 0) return;
+  await prisma.goalReminder.deleteMany({
+    where: { OR: claimed.map((item) => ({ goalId: item.goalId, periodKey: item.periodKey })) },
+  });
+}
+
 export async function sendDueGoalReminders(now = new Date()) {
   const settings = goalReminderSettings();
   if (!settings.enabled) return { enabled: false, sent: 0, goals: 0 };
@@ -93,13 +100,21 @@ export async function sendDueGoalReminders(now = new Date()) {
     if (planned.length === 0) continue;
 
     const claimed = [];
+    let claimFailed = false;
     for (const item of planned) {
       try {
         await prisma.goalReminder.create({ data: { goalId: item.goalId, periodKey: item.periodKey } });
         claimed.push(item);
       } catch (error) {
-        if (!isUniqueConflict(error)) throw error;
+        if (isUniqueConflict(error)) continue;
+        claimFailed = true;
+        console.error("Failed to reserve goal reminder", error);
+        break;
       }
+    }
+    if (claimFailed) {
+      await releaseClaims(claimed);
+      continue;
     }
     if (claimed.length === 0) continue;
 
@@ -109,9 +124,7 @@ export async function sendDueGoalReminders(now = new Date()) {
       sent += 1;
       reminded += claimed.length;
     } catch (error) {
-      await prisma.goalReminder.deleteMany({
-        where: { OR: claimed.map((item) => ({ goalId: item.goalId, periodKey: item.periodKey })) },
-      });
+      await releaseClaims(claimed);
       console.error("Failed to send goal reminder", error);
     }
   }
