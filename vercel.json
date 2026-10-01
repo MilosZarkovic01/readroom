@@ -3,5 +3,11 @@
     "deploymentEnabled": {
       "master": false
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/goal-reminders",
+      "schedule": "0 20 * * *"
+    }
+  ]
 }
