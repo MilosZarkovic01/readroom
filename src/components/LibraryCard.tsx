@@ -171,8 +171,8 @@ export function LibraryCard({ entry }: { entry: LibraryCardEntry }) {
               <p className="mb-5 text-sm leading-relaxed text-warm-gray">{entry.book.description}</p>
             ) : null}
             {status === "READING" ? (
-              <div className="mb-5">
-                <p className="mb-2 text-sm font-medium text-espresso">Reading progress</p>
+              <div className="mb-4">
+                <p className="mb-1.5 text-sm font-medium text-espresso">Reading progress</p>
                 <PageProgressForm
                   key={entry.book.pageCount ?? "unknown"}
                   entryId={entry.id}

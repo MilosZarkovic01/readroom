@@ -16,13 +16,15 @@ import {
 const now = new Date("2026-06-15T12:00:00.000Z");
 
 function goal(partial: Partial<GoalRecord>): GoalRecord {
+  const startsAt = partial.startsAt ?? new Date("2026-01-01T00:00:00.000Z");
   return {
     type: "BOOK_COUNT",
     period: "TOTAL",
     timeZone: "UTC",
     target: 4,
     bookId: null,
-    startsAt: new Date("2026-01-01T00:00:00.000Z"),
+    startsAt,
+    createdAt: startsAt,
     endsAt: null,
     completedAt: null,
     ...partial,
@@ -66,6 +68,38 @@ test("respects the end of the window", () => {
   expect(progress.current).toBe(1);
   expect(progress.expired).toBe(true);
   expect(progress.daysLeft).toBeNull();
+});
+
+test("ignores pages logged before the goal was created", () => {
+  const daily = goal({
+    type: "PAGE_COUNT",
+    period: "DAILY",
+    target: 20,
+    startsAt: new Date("2026-06-15T00:00:00.000Z"),
+    createdAt: new Date("2026-06-15T10:00:00.000Z"),
+  });
+  const logs = [log("2026-06-15T08:00:00.000Z", 107), log("2026-06-15T11:30:00.000Z", 8)];
+  const progress = computeGoalProgress(daily, [], logs, now);
+  expect(progress).toMatchObject({
+    current: 8,
+    target: 20,
+    percent: 40,
+    done: false,
+    metThisPeriod: false,
+  });
+  expect(motivationLine("PAGE_COUNT", progress, "DAILY")).toBe("12 pages to go today");
+});
+
+test("ignores books finished before the goal was created", () => {
+  const yearly = goal({
+    type: "BOOK_COUNT",
+    target: 4,
+    startsAt: new Date("2026-01-01T00:00:00.000Z"),
+    createdAt: new Date("2026-06-01T00:00:00.000Z"),
+  });
+  const entries = [read("early", "2026-03-01T00:00:00.000Z"), read("after", "2026-06-10T00:00:00.000Z")];
+  const progress = computeGoalProgress(yearly, entries, [], now);
+  expect(progress).toMatchObject({ current: 1, target: 4, done: false });
 });
 
 test("sums logged pages for page goals and caps progress at the target", () => {

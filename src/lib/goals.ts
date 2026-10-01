@@ -27,6 +27,8 @@ export type GoalRecord = {
   target: number | null;
   bookId: string | null;
   startsAt: Date;
+  /** When the goal was saved. Reading logged before this does not count, even if it falls after startsAt. */
+  createdAt: Date;
   endsAt: Date | null;
   completedAt: Date | null;
 };
@@ -105,9 +107,14 @@ export function readCompletedGoalsFromApi(payload: unknown): GoalView[] {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/** The instant progress starts counting: the later of the chosen start and the moment the goal was created. */
+function progressCountsFrom(goal: GoalRecord) {
+  return goal.createdAt > goal.startsAt ? goal.createdAt : goal.startsAt;
+}
+
 function withinGoal(goal: GoalRecord, date: Date | null): date is Date {
   if (!date) return false;
-  if (date < goal.startsAt) return false;
+  if (date < progressCountsFrom(goal)) return false;
   return !goal.endsAt || date <= goal.endsAt;
 }
 
@@ -185,7 +192,7 @@ export function computeGoalProgress(
   const results: boolean[] = [];
   let window = periodWindow(reference, period, timeZone);
   const current = Math.max(0, buckets.get(window.key) ?? 0);
-  for (let index = 0; index < STREAK_LOOKBACK && window.end > goal.startsAt; index += 1) {
+  for (let index = 0; index < STREAK_LOOKBACK && window.end > progressCountsFrom(goal); index += 1) {
     results.push((buckets.get(window.key) ?? 0) >= target);
     window = previousWindow(window, period, timeZone);
   }
